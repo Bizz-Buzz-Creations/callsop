@@ -1,0 +1,56 @@
+import { useState } from 'react';
+
+const FallingBehind = () => {
+  const [delaySince, setDelaySince] = useState('');
+
+  return (
+    <div className="bg-white space-y-4 p-4 border rounded-lg shadow-md mx-auto text-gray-800">
+      <h2 className="text-xl font-semibold">Payment Delay Details</h2>
+
+      {/* Input Field */}
+      <div>
+        <label className="block mb-1 font-medium">Since when?</label>
+        <input
+          type="text"
+          placeholder="e.g. January 2024"
+          value={delaySince}
+          onChange={(e) => setDelaySince(e.target.value)}
+          className="w-full p-1 indent-1 border border-gray-300 rounded"
+        />
+      </div>
+
+      {/* Conversational Content */}
+      <div className="space-y-3 text-gray-700">
+        <p>
+          If you are falling behind on your payments, I believe your creditors might be chasing you by sending letters, text messages, or emails to bother you.
+          <br />
+          <strong>Right?</strong>
+        </p>
+
+        <p>
+          Don’t worry — we will provide you with <strong>legal protection</strong> against your creditors so they can’t bother you anymore.
+        </p>
+
+        <p>
+          Also, your credit rating is likely being hampered, which may cause trouble in getting new credit in the future.
+          <br />
+          <strong>Right?</strong>
+        </p>
+
+        <p>
+          The program we’re discussing will help improve your credibility and make repayment easier. All your debts will be <strong>consolidated into one</strong>, and you’ll only need to make a single payment — based on your realistic affordability.
+          <br />
+          <strong>Right?</strong>
+        </p>
+
+        <p>
+          To give you a clear picture of which program you qualify for and what minimum payment plan is best suited for you, I’m going to transfer this call to one of my senior supervisors. He will guide you further.
+          <br />
+          <strong>Please bear with me.</strong>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default FallingBehind;
