@@ -8,7 +8,7 @@ const getBadge = (payment) => {
   if (payment === 0) return 'Falling Behind';
   if (payment >= 1 && payment <= 10) return 'Token Payment';
   if (payment >= 11 && payment <= 150) return 'Low Payment';
-  if (payment >= 151 && payment <= 300) return 'Normal payment';
+  if (payment >= 151 && payment <= 300) return 'Normal Payment';
   if (payment >= 301) return 'High Payment';
   return '';
 };
@@ -19,7 +19,14 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
 
   // Handler for input changes
   const handleInput = (field, val) => {
-    onChange({ ...value, [field]: val });
+    const updatedValue = { ...value, [field]: val };
+
+    // If payment is updated, calculate and store the badge
+    if (field === "payment") {
+      updatedValue.badge = getBadge(Number(val));
+    }
+
+    onChange(updatedValue);
   };
 
   return (
@@ -65,77 +72,87 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
           )}
         </div>
         {/* Show components based on badge */}
-        {badge === 'Falling Behind' && <FallingBehind />}
+        {badge === 'Falling Behind' &&
+          <FallingBehind
+            value={value.delaySince || ""}
+            onChange={(val) => handleInput("delaySince", val)}
+          />}
         {badge === 'High Payment' && <HighPayment />}
-        {badge === 'Low Payment' && <LowPayment />}
+        {(badge === 'Low Payment' || badge === 'Normal Payment') &&
+          <LowPayment
+            value={value}
+            onChange={(updatedSubValues) => {
+              onChange({ ...value, ...updatedSubValues });
+            }}
+          />}
       </div>
       <h3 className='text-xl font-medium mt-3'>Consumer Debts (CD):</h3>
-      <LabeledInputGroup 
-        label="Credit Card" 
+      <LabeledInputGroup
+        label="Credit Card"
         value={value.creditCard || []}
         onChange={val => handleInput("creditCard", val)}
       />
-      <LabeledInputGroup 
-        label="Loan" 
+      <LabeledInputGroup
+        label="Loan"
         value={value.loan || []}
         onChange={val => handleInput("loan", val)}
       />
-      <LabeledInputGroup 
-        label="Store Card" 
+      <LabeledInputGroup
+        label="Store Card"
         value={value.storeCard || []}
         onChange={val => handleInput("storeCard", val)}
       />
-      <LabeledInputGroup 
-        label="Catalog" 
+      <LabeledInputGroup
+        label="Catalog"
         value={value.catalog || []}
         onChange={val => handleInput("catalog", val)}
       />
 
       <h3 className='text-xl font-medium'>Priority Bills (PB): <span className='font-normal text-lg'>Are you upto date with your priority bill like gas,  electric, and water rent?</span></h3>
-      <LabeledInputGroup 
-        label="Gas" 
+      <LabeledInputGroup
+        label="Gas"
         value={value.gas || []}
         onChange={val => handleInput("gas", val)}
       />
-      <LabeledInputGroup 
-        label="Electric" 
+      <LabeledInputGroup
+        label="Electric"
         value={value.electric || []}
         onChange={val => handleInput("electric", val)}
       />
-      <LabeledInputGroup 
-        label="Water" 
+      <LabeledInputGroup
+        label="Water"
         value={value.water || []}
         onChange={val => handleInput("water", val)}
       />
-      <LabeledInputGroup 
-        label="Mobile Contact" 
+      <LabeledInputGroup
+        label="Mobile Contact"
         value={value.mobileContact || []}
         onChange={val => handleInput("mobileContact", val)}
       />
 
       <h3 className='text-xl font-medium'>Government Debts (GD): <span className='font-normal text-lg'>Ask Is there any debts with the Gov. Like Over payment or advance payment of any benefits, Any CCJ Or HRMC or any Bailiffs Debts?</span></h3>
-      <LabeledInputGroup 
-        label="Over Payment" 
+      <LabeledInputGroup
+        label="Over Payment"
         value={value.overPayment || []}
         onChange={val => handleInput("overPayment", val)}
       />
-      <LabeledInputGroup 
-        label="Advance Payment" 
+      <LabeledInputGroup
+        label="Advance Payment"
         value={value.advancePayment || []}
         onChange={val => handleInput("advancePayment", val)}
       />
-      <LabeledInputGroup 
-        label="CCJ" 
+      <LabeledInputGroup
+        label="CCJ"
         value={value.ccj || []}
         onChange={val => handleInput("ccj", val)}
       />
-      <LabeledInputGroup 
-        label="HRMS" 
+      <LabeledInputGroup
+        label="HRMS"
         value={value.hrms || []}
         onChange={val => handleInput("hrms", val)}
       />
-      <LabeledInputGroup 
-        label="Others" 
+      <LabeledInputGroup
+        label="Others"
         value={value.others || []}
         onChange={val => handleInput("others", val)}
       />

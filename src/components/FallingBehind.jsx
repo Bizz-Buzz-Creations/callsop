@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-const FallingBehind = () => {
-  const [delaySince, setDelaySince] = useState('');
+const FallingBehind = ({ value = "", onChange }) => {
+  // const [delaySince, setDelaySince] = useState('');
 
   return (
     <div className="bg-white space-y-4 p-4 border rounded-lg shadow-md mx-auto text-gray-800">
@@ -13,8 +13,8 @@ const FallingBehind = () => {
         <input
           type="text"
           placeholder="e.g. January 2024"
-          value={delaySince}
-          onChange={(e) => setDelaySince(e.target.value)}
+          value={value}
+          onChange={(e) => onChange && onChange(e.target.value)}
           className="w-full p-1 indent-1 border border-gray-300 rounded"
         />
       </div>

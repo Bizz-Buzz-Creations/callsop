@@ -1,8 +1,9 @@
-import { useState } from 'react';
-
-const LowPayment = () => {
-  const [handlingMethod, setHandlingMethod] = useState('');
-  const [companyType, setCompanyType] = useState('');
+const LowPayment = ({ value = {}, onChange }) => {
+  const handleChange = (field, val) => {
+    if (onChange) {
+      onChange({ ...value, [field]: val });
+    }
+  };
 
   return (
     <div className="bg-white space-y-4 p-4 border rounded-lg shadow-md mx-auto">
@@ -17,8 +18,8 @@ const LowPayment = () => {
               type="radio"
               name="handlingMethod"
               value="company"
-              checked={handlingMethod === 'company'}
-              onChange={() => setHandlingMethod('company')}
+              checked={value.handlingMethod === 'company'}
+              onChange={() => handleChange('handlingMethod', 'company')}
               className="mr-2"
             />
             Dealing with a company
@@ -28,8 +29,8 @@ const LowPayment = () => {
               type="radio"
               name="handlingMethod"
               value="myself"
-              checked={handlingMethod === 'myself'}
-              onChange={() => setHandlingMethod('myself')}
+              checked={value.handlingMethod === 'myself'}
+              onChange={() => handleChange('handlingMethod', 'myself')}
               className="mr-2"
             />
             Paying by myself
@@ -38,7 +39,7 @@ const LowPayment = () => {
       </div>
 
       {/* If dealing with a company */}
-      {handlingMethod === 'company' && (
+      {value.handlingMethod === 'company' && (
         <div className="space-y-3">
           <label className="font-medium">Which company is it — a private company or a charity org like StepChange?</label>
           <div className="flex gap-4">
@@ -47,8 +48,8 @@ const LowPayment = () => {
                 type="radio"
                 name="companyType"
                 value="private"
-                checked={companyType === 'private'}
-                onChange={() => setCompanyType('private')}
+                checked={value.companyType === 'private'}
+                onChange={() => handleChange('companyType', 'private')}
                 className="mr-2"
               />
               Private
@@ -58,8 +59,8 @@ const LowPayment = () => {
                 type="radio"
                 name="companyType"
                 value="charity"
-                checked={companyType === 'charity'}
-                onChange={() => setCompanyType('charity')}
+                checked={value.companyType === 'charity'}
+                onChange={() => handleChange('companyType', 'charity')}
                 className="mr-2"
               />
               Charity
@@ -67,7 +68,7 @@ const LowPayment = () => {
           </div>
 
           {/* Conditional content */}
-          {companyType === 'private' &&
+          {value.companyType === 'private' &&
             <>
               <p className="text-blue-600 font-medium">You're using a private DMP (Debt Management Plan).</p>
               <div className="text-gray-800 mx-auto space-y-4 leading-relaxed">
@@ -94,7 +95,7 @@ const LowPayment = () => {
                 </p>
               </div>
             </>}
-          {companyType === 'charity' &&
+          {value.companyType === 'charity' &&
             <>
               <p className="text-green-600 font-medium">You're using StepChange or a similar charity DMP.</p>
               <div className="text-gray-800 mx-auto space-y-4 leading-relaxed">
@@ -125,7 +126,7 @@ const LowPayment = () => {
       )}
 
       {/* If managing by self */}
-      {handlingMethod === 'myself' && (
+      {value.handlingMethod === 'myself' && (
         <div className="space-y-4 text-gray-700">
           <p>
             As I can see, the majority portion of your payments are going towards interest and charges. That's why your principal amount is coming down, but very slowly.

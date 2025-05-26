@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import DebtConfirmation from "../components/DebtConfirmation";  
+import DebtConfirmation from "../components/DebtConfirmation";
 import EmployementInfo from "../components/EmploymentInfo";
 import MaritalStatus from "../components/MaritalStatus";
 import RentalDetails from "../components/RentalDetails";
+import { ListRestart } from "lucide-react";
+import { Tooltip } from "react-tooltip";
+import 'react-tooltip/dist/react-tooltip.css';
+import SummaryReport from "../components/SummaryReport";
 
 // Utility functions for localStorage
 const STORAGE_KEY = "sopFormData";
@@ -16,6 +20,9 @@ const getStoredData = () => {
 };
 const setStoredData = (data) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+};
+const clearStoredData = () => {
+  localStorage.removeItem(STORAGE_KEY);
 };
 
 const SOP = () => {
@@ -34,16 +41,52 @@ const SOP = () => {
     }));
   };
 
-  return (
-    <section className="w-3xl mx-auto p-4 border rounded-md shadow bg-gray-100">
-      <DebtConfirmation value={formData.debtConfirmation || {}} onChange={(v) => handleUpdate("debtConfirmation", v)} />
-      <RentalDetails value={formData.rentalDetails || {}} onChange={(v) => handleUpdate("rentalDetails", v)} />
-      <MaritalStatus value={formData.maritalStatus || {}} onChange={(v) => handleUpdate("maritalStatus", v)} />
-      <EmployementInfo value={formData.employmentInfo || {}} onChange={(v) => handleUpdate("employmentInfo", v)} />
+  // Reset all data
+  const handleReset = () => {
+    const confirmMessage = window.confirm("⚠️ Warning:\nAre you sure you want to refresh this window?\n\nYou'll lose the entire data.")
+    if(confirmMessage) {
+      clearStoredData();
+      setFormData({});
+    }
+  };
 
-      <div className="mt-8 p-4 bg-white rounded shadow">
-        <h2 className="text-xl font-bold mb-2">All Entered Values</h2>
-        <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">{JSON.stringify(formData, null, 2)}</pre>
+  return (
+    <section className="w-3xl mx-auto p-4 border rounded-md shadow bg-gray-100 relative">
+
+      <button
+        data-tooltip-id="my-tooltip"
+        data-tooltip-content="Reset Data"
+        onClick={handleReset}
+        className="p-2 bg-slate-400 text-white rounded-full hover:bg-indigo-700 transition absolute right-2 top-2"
+      >
+        <ListRestart />
+      </button>
+
+      <Tooltip id="my-tooltip" place="top" effect="solid" className="!bg-indigo-700 !font-semibold" />
+
+      <DebtConfirmation
+        value={formData.debtConfirmation || {}}
+        onChange={(v) => handleUpdate("debtConfirmation", v)}
+      />
+      <RentalDetails
+        value={formData.rentalDetails || {}}
+        onChange={(v) => handleUpdate("rentalDetails", v)}
+      />
+      <MaritalStatus
+        value={formData.maritalStatus || {}}
+        onChange={(v) => handleUpdate("maritalStatus", v)}
+      />
+      <EmployementInfo
+        value={formData.employmentInfo || {}}
+        onChange={(v) => handleUpdate("employmentInfo", v)}
+      />
+
+      <div className="mt-8 p-1 bg-white rounded shadow">
+        {/* <h2 className="text-xl font-bold mb-2">All Entered Values</h2>
+        <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">
+          {JSON.stringify(formData, null, 2)}
+        </pre> */}
+        <SummaryReport />
       </div>
     </section>
   );
