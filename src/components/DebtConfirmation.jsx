@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import LabeledInputGroup from './LabeledInputGroup';
 import FallingBehind from './FallingBehind';
 import HighPayment from './HighPayment';
@@ -13,11 +13,14 @@ const getBadge = (payment) => {
   return '';
 };
 
-const DebtConfirmation = () => {
-  const [debt, setDebt] = useState('');
-  const [payment, setPayment] = useState('0');
-
+const DebtConfirmation = ({ value = {}, onChange }) => {
+  const { debt = '', payment = '0' } = value;
   const badge = getBadge(Number(payment));
+
+  // Handler for input changes
+  const handleInput = (field, val) => {
+    onChange({ ...value, [field]: val });
+  };
 
   return (
     <div>
@@ -30,7 +33,7 @@ const DebtConfirmation = () => {
               <input
                 type="number"
                 value={debt}
-                onChange={(e) => setDebt(e.target.value)}
+                onChange={e => handleInput("debt", e.target.value)}
                 className="w-full p-1 border rounded indent-1"
                 placeholder="Enter your debt amount"
               />
@@ -41,7 +44,7 @@ const DebtConfirmation = () => {
               <input
                 type="number"
                 value={payment}
-                onChange={(e) => setPayment(e.target.value)}
+                onChange={e => handleInput("payment", e.target.value)}
                 className="w-full p-1 border rounded indent-1"
                 placeholder="Enter your payment amount"
               />
@@ -51,11 +54,11 @@ const DebtConfirmation = () => {
           {badge && (
             <div
               className={`mt-4 inline-block px-3 py-1 rounded-full text-sm font-semibold text-nowrap
-            ${badge === 'High Payment' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}
-            ${badge === 'Normal Payment' ? 'bg-blue-600 text-white' : 'bg-blue-600 text-white'}
-            ${badge === 'Low Payment' ? 'bg-yellow-500 text-black' : 'bg-blue-600 text-white'}
-            ${badge === 'Token Payment' ? 'bg-orange-500 text-white' : 'bg-blue-600 text-white'}
-            ${badge === 'Falling Behind' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}
+            ${badge === 'High Payment' ? 'bg-green-600 text-white' : ''}
+            ${badge === 'Normal Payment' ? 'bg-blue-600 text-white' : ''}
+            ${badge === 'Low Payment' ? 'bg-yellow-500 text-black' : ''}
+            ${badge === 'Token Payment' ? 'bg-orange-500 text-white' : ''}
+            ${badge === 'Falling Behind' ? 'bg-red-600 text-white' : ''}`}
             >
               {badge}
             </div>
@@ -67,24 +70,75 @@ const DebtConfirmation = () => {
         {badge === 'Low Payment' && <LowPayment />}
       </div>
       <h3 className='text-xl font-medium mt-3'>Consumer Debts (CD):</h3>
-      <LabeledInputGroup label="Credit Card" />
-      <LabeledInputGroup label="Loan" />
-      <LabeledInputGroup label="Store Card" />
-      <LabeledInputGroup label="Catalog" />
+      <LabeledInputGroup 
+        label="Credit Card" 
+        value={value.creditCard || []}
+        onChange={val => handleInput("creditCard", val)}
+      />
+      <LabeledInputGroup 
+        label="Loan" 
+        value={value.loan || []}
+        onChange={val => handleInput("loan", val)}
+      />
+      <LabeledInputGroup 
+        label="Store Card" 
+        value={value.storeCard || []}
+        onChange={val => handleInput("storeCard", val)}
+      />
+      <LabeledInputGroup 
+        label="Catalog" 
+        value={value.catalog || []}
+        onChange={val => handleInput("catalog", val)}
+      />
 
       <h3 className='text-xl font-medium'>Priority Bills (PB): <span className='font-normal text-lg'>Are you upto date with your priority bill like gas,  electric, and water rent?</span></h3>
-      <LabeledInputGroup label="Gas" />
-      <LabeledInputGroup label="Electric" />
-      <LabeledInputGroup label="Water" />
-      <LabeledInputGroup label="Mobile Contact" />
+      <LabeledInputGroup 
+        label="Gas" 
+        value={value.gas || []}
+        onChange={val => handleInput("gas", val)}
+      />
+      <LabeledInputGroup 
+        label="Electric" 
+        value={value.electric || []}
+        onChange={val => handleInput("electric", val)}
+      />
+      <LabeledInputGroup 
+        label="Water" 
+        value={value.water || []}
+        onChange={val => handleInput("water", val)}
+      />
+      <LabeledInputGroup 
+        label="Mobile Contact" 
+        value={value.mobileContact || []}
+        onChange={val => handleInput("mobileContact", val)}
+      />
 
       <h3 className='text-xl font-medium'>Government Debts (GD): <span className='font-normal text-lg'>Ask Is there any debts with the Gov. Like Over payment or advance payment of any benefits, Any CCJ Or HRMC or any Bailiffs Debts?</span></h3>
-      <LabeledInputGroup label="Over Payment" />
-      <LabeledInputGroup label="Advance Payment" />
-      <LabeledInputGroup label="CCJ" />
-      <LabeledInputGroup label="HRMS" />
-      <LabeledInputGroup label="Others" />
-
+      <LabeledInputGroup 
+        label="Over Payment" 
+        value={value.overPayment || []}
+        onChange={val => handleInput("overPayment", val)}
+      />
+      <LabeledInputGroup 
+        label="Advance Payment" 
+        value={value.advancePayment || []}
+        onChange={val => handleInput("advancePayment", val)}
+      />
+      <LabeledInputGroup 
+        label="CCJ" 
+        value={value.ccj || []}
+        onChange={val => handleInput("ccj", val)}
+      />
+      <LabeledInputGroup 
+        label="HRMS" 
+        value={value.hrms || []}
+        onChange={val => handleInput("hrms", val)}
+      />
+      <LabeledInputGroup 
+        label="Others" 
+        value={value.others || []}
+        onChange={val => handleInput("others", val)}
+      />
     </div>
   );
 };

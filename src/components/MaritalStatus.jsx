@@ -1,23 +1,28 @@
-import { useState } from "react";
-import DualInputRow from "./DualInputRow";
+import { useEffect } from "react";
 
-const MaritalStatus = () => {
-  const [haveKids, setHaveKids] = useState("yes");
+const MaritalStatus = ({ value = {}, onChange }) => {
+  // Use value as the source of truth
+  const { status = "", haveKids = "no", kidsCount = "", kidsAges = "" } = value;
+
+  // Handler for radio/select changes
+  const handleChange = (field, val) => {
+    onChange({ ...value, [field]: val });
+  };
 
   return (
     <>
       <h3 className='text-xl font-medium'>Marital Status:</h3>
       <section className='flex flex-col sm:flex-row gap-5'>
         <div className='flex gap-2 items-center'>
-          <input type="radio" id="single" name="status" value="single" />
+          <input type="radio" id="single" name="status" value="single" checked={status === "single"} onChange={() => handleChange("status", "single")} />
           <label htmlFor="single">Single</label>
         </div>
         <div className='flex gap-2 items-center'>
-          <input type="radio" id="married" name="status" value="married" />
+          <input type="radio" id="married" name="status" value="married" checked={status === "married"} onChange={() => handleChange("status", "married")} />
           <label htmlFor="married">Married</label>
         </div>
         <div className='flex gap-2 items-center'>
-          <input type="radio" id="partner" name="status" value="partner" />
+          <input type="radio" id="partner" name="status" value="partner" checked={status === "partner"} onChange={() => handleChange("status", "partner")} />
           <label htmlFor="partner">Live with a Partner</label>
         </div>
       </section>
@@ -31,7 +36,7 @@ const MaritalStatus = () => {
             name="haveKids"
             value="yes"
             checked={haveKids === "yes"}
-            onChange={() => setHaveKids("yes")}
+            onChange={() => handleChange("haveKids", "yes")}
           />
           <label htmlFor="yes">Yes</label>
         </div>
@@ -42,13 +47,34 @@ const MaritalStatus = () => {
             name="haveKids"
             value="no"
             checked={haveKids === "no"}
-            onChange={() => setHaveKids("no")}
+            onChange={() => handleChange("haveKids", "no")}
           />
           <label htmlFor="no">No</label>
         </div>
       </section>
       {haveKids === "yes" && (
-        <DualInputRow labelLeft="How many kids you have?" labelRight="May I ask their age?" />
+        <div className="flex gap-4 mt-2">
+          <div>
+            <label>How many kids you have?</label>
+            <input
+              type="number"
+              min="1"
+              value={kidsCount}
+              onChange={e => handleChange("kidsCount", e.target.value)}
+              className="border rounded p-1 ml-2"
+            />
+          </div>
+          <div>
+            <label>May I ask their age?</label>
+            <input
+              type="text"
+              value={kidsAges}
+              onChange={e => handleChange("kidsAges", e.target.value)}
+              className="border rounded p-1 ml-2"
+              placeholder="e.g. 5, 8"
+            />
+          </div>
+        </div>
       )}
     </>
   );

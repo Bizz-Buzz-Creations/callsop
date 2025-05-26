@@ -1,29 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Minus } from 'lucide-react';
 
-const DynamicInputGenerator = () => {
+const DynamicInputGenerator = ({ value = [], onChange }) => {
   const [number, setNumber] = useState(0);
-  const [inputs, setInputs] = useState([]);
+  // Each input row is an object: { name: '', amount: '', payment: '' }
+  const [inputs, setInputs] = useState(value);
+
+  useEffect(() => {
+    onChange && onChange(inputs);
+  }, [inputs]);
 
   const handleChange = (e) => {
     const value = parseInt(e.target.value) || 0;
     setNumber(value);
 
-    // Create an array of empty strings of length `value`
-    const newInputs = Array(value).fill('');
+    // Create an array of empty objects of length `value`
+    const newInputs = Array.from({ length: value }, (_, i) => inputs[i] || { name: '', amount: '', payment: '' });
     setInputs(newInputs);
   };
 
-  const handleInputChange = (index, value) => {
+  const handleInputChange = (index, field, value) => {
     const newInputs = [...inputs];
-    newInputs[index] = value;
+    newInputs[index] = { ...newInputs[index], [field]: value };
     setInputs(newInputs);
   };
 
   const handleIncrement = () => {
     const newNumber = number + 1;
     setNumber(newNumber);
-    setInputs(Array(newNumber).fill(''));
+    setInputs([...inputs, { name: '', amount: '', payment: '' }]);
   };
 
   const handleDecrement = () => {
@@ -32,7 +37,7 @@ const DynamicInputGenerator = () => {
       if (confirmRemove) {
         const newNumber = number - 1;
         setNumber(newNumber);
-        setInputs(Array(newNumber).fill(''));
+        setInputs(inputs.slice(0, newNumber));
       }
       // If not confirmed, do nothing
     }
@@ -52,11 +57,11 @@ const DynamicInputGenerator = () => {
         />
         <button
           onClick={handleIncrement}
-          className="bg-indigo-600 hover:hover:bg-indigo-700 text-white p-2 rounded-full"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full"
         ><Plus width={16} height={16} /></button>
         <button
           onClick={handleDecrement}
-          className="bg-indigo-600 hover:hover:bg-indigo-700 text-white p-2 rounded-full"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full"
         ><Minus width={16} height={16} /></button>
       </div>
 
@@ -65,23 +70,23 @@ const DynamicInputGenerator = () => {
           <div key={index} className='flex gap-5'>
             <input
               type="text"
-              value={input}
-              onChange={(e) => handleInputChange(index, e.target.value)}
-              placeholder={`Name`}
+              value={input.name}
+              onChange={(e) => handleInputChange(index, 'name', e.target.value)}
+              placeholder="Name"
               className="border rounded w-full indent-1 p-1"
             />
             <input
               type="number"
-              value={input}
-              onChange={(e) => handleInputChange(index, e.target.value)}
-              placeholder={`Amount`}
+              value={input.amount}
+              onChange={(e) => handleInputChange(index, 'amount', e.target.value)}
+              placeholder="Amount"
               className="border rounded w-full indent-1 p-1"
             />
             <input
               type="number"
-              value={input}
-              onChange={(e) => handleInputChange(index, e.target.value)}
-              placeholder={`Payment`}
+              value={input.payment}
+              onChange={(e) => handleInputChange(index, 'payment', e.target.value)}
+              placeholder="Payment"
               className="border rounded w-full indent-1 p-1"
             />
           </div>
