@@ -20,7 +20,7 @@ export function generateReportFromLocalStorage() {
   const badge = data.debtConfirmation?.badge;
 
   if (overallDebt > 0 || overallPayment > 0 || badge) {
-    lines.push(`${formatCurrency(overallDebt)} - ${formatCurrency(overallPayment)}/month ${overallPayment === 0 ? `(Since ${delaySince})` : ''}`);
+    lines.push(`${formatCurrency(overallDebt)} - ${formatCurrency(overallPayment)}/month ${overallPayment === 0 ? `(Since ${delaySince === "" ? `when?` : `${delaySince}`})` : ''}`);
     // if (badge) {
     //   lines.push(badge);
     // }
