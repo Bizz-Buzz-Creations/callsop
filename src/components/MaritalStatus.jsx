@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 const MaritalStatus = ({ value = {}, onChange }) => {
   // Use value as the source of truth
-  const { status = "", haveKids = "no", kidsCount = "", kidsAges = "" } = value;
+  const { status = "", haveKids = "", kidsCount = "", kidsAges = "" } = value;
 
   // Handler for radio/select changes
   const handleChange = (field, val) => {

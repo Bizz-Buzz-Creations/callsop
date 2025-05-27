@@ -1,9 +1,50 @@
-const HighPayment = () => {
+const HighPayment = ({ value = {}, onChange }) => {
+  const handleChange = (field, val) => {
+    if (onChange) {
+      onChange({ ...value, [field]: val });
+    }
+  };
+
+  const messages = {
+    fine: `That's great! That you are managing it well. However, in case you keep making the payment in such a way, it will still take a longer time to clear these debts off.`,
+    struggling: `So if you're struggling or compromising with any expenses, then our basic job is to firstly draw down the monthly payment according to your realistic affordability so that you don't have to compromise with the payment that you are making currently. Also, we will freeze down the interest and charges.`,
+  };
+
   return (
     <div className="bg-white border p-4 rounded-lg shadow-md text-gray-800 max-w-3xl mx-auto space-y-4">
       <p className="text-base leading-relaxed">
         <strong>Right!</strong> You are making such high payments. Are you compromising with your expenses or are you fine with these payments?
       </p>
+
+      <div className="flex gap-10">
+        <label className="flex items-center gap-2">
+          <input
+            type="radio"
+            name="handlingMethod"
+            value="fine"
+            checked={value.handlingMethod === "fine"}
+            onChange={(e) => handleChange("handlingMethod", e.target.value)}
+          />
+          Fine with the payment
+        </label>
+
+        <label className="flex items-center gap-2">
+          <input
+            type="radio"
+            name="handlingMethod"
+            value="struggling"
+            checked={value.handlingMethod === "struggling"}
+            onChange={(e) => handleChange("handlingMethod", e.target.value)}
+          />
+          Struggling
+        </label>
+      </div>
+
+      {value.handlingMethod && (
+        <div>
+          {messages[value.handlingMethod]}
+        </div>
+      )}
 
       <p className="text-base leading-relaxed">
         Because as I can see, some part of these repayments is simply going toward the high interest and charges. That’s the only reason your principal amount is coming down but very slowly.

@@ -77,7 +77,13 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
             value={value.delaySince || ""}
             onChange={(val) => handleInput("delaySince", val)}
           />}
-        {badge === 'High Payment' && <HighPayment />}
+        {badge === 'High Payment' && 
+        <HighPayment 
+          value={value}
+          onChange={(updatedSubValues) => {
+            onChange({ ...value, ...updatedSubValues });
+          }}
+        />}
         {(badge === 'Low Payment' || badge === 'Normal Payment') &&
           <LowPayment
             value={value}
@@ -147,9 +153,9 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
         onChange={val => handleInput("ccj", val)}
       />
       <LabeledInputGroup
-        label="HRMS"
+        label="HMRC"
         value={value.hrms || []}
-        onChange={val => handleInput("hrms", val)}
+        onChange={val => handleInput("hmrc", val)}
       />
       <LabeledInputGroup
         label="Others"

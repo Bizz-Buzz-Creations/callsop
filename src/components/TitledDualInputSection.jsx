@@ -7,7 +7,8 @@ const TitledDualInputSection = ({
   valueLeft,
   valueRight,
   onChangeLeft,
-  onChangeRight
+  onChangeRight,
+  type
 }) => {
   return (
     <div>
@@ -19,6 +20,7 @@ const TitledDualInputSection = ({
         valueRight={valueRight}
         onChangeLeft={onChangeLeft}
         onChangeRight={onChangeRight}
+        type={type}
       />
     </div>
   )

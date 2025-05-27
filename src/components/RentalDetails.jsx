@@ -1,3 +1,4 @@
+import DualInputRow from "./DualInputRow";
 import TitledDualInputSection from "./TitledDualInputSection";
 
 const RentalDetails = ({ value = {}, onChange }) => {
@@ -11,13 +12,21 @@ const RentalDetails = ({ value = {}, onChange }) => {
       <h3 className='text-xl font-medium'>Currently are Renting a property or you home owner?</h3>
       <TitledDualInputSection
         title="Home Owner:"
-        labelLeft="How much is the mortgage?"
+        labelLeft="Total mortgage outstanding?"
         labelRight="How much is the CPV?"
         valueLeft={value.mortgage || ""}
         valueRight={value.cpv || ""}
         onChangeLeft={val => handleChange("mortgage", val)}
         onChangeRight={val => handleChange("cpv", val)}
+        type="text"
       />
+      <DualInputRow
+        labelLeft="How much mortgage you pay?"
+        valueLeft={value.mortgagePay || ""}
+        onChangeLeft={val => handleChange("mortgagePay", val)}
+        type="number"
+      />
+
       <TitledDualInputSection
         title="Tenant:"
         labelLeft="Private Rent"
@@ -26,6 +35,7 @@ const RentalDetails = ({ value = {}, onChange }) => {
         valueRight={value.councilRent || ""}
         onChangeLeft={val => handleChange("privateRent", val)}
         onChangeRight={val => handleChange("councilRent", val)}
+        type="number"
       />
     </>
   );

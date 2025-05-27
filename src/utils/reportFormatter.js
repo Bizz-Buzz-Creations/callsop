@@ -58,11 +58,21 @@ export function generateReportFromLocalStorage() {
   // lines.push(`**Total Payment:** ${formatCurrency(totalPayment)}/month\n`);
 
   lines.push("RENTAL DETAILS");
+  const rentalOrder = ["mortgage", "mortgagePay", "cpv", "private", "privateRent", "council", "councilRent"];
+
   if (data.rentalDetails) {
-    Object.entries(data.rentalDetails).forEach(([key, value]) => {
-      lines.push(`- ${capitalize(key)} – ${formatCurrency(value)}/month`);
+    rentalOrder.forEach((key) => {
+      const value = data.rentalDetails[key];
+      if (value !== undefined && value !== "") {
+        if (key === "mortgage" || key === "cpv") {
+          lines.push(`- ${capitalize(key)} – ${value}`);
+        } else {
+          lines.push(`- ${capitalize(key)} – ${formatCurrency(value)}/month`);
+        }
+      }
     });
   }
+
   lines.push("");
 
   lines.push("MARITAL STATUS");
