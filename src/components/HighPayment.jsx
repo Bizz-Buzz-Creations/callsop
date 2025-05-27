@@ -20,11 +20,10 @@ const HighPayment = () => {
       </p>
 
       <p className="text-base leading-relaxed">
-        To give you a clearer picture of which program you can qualify for and what minimum payment plan is best suited for you, I’m going to process the application further. I’ll also explain all the <strong>benefits</strong> and <strong>drawbacks</strong> of the solution so that you can make an informed decision.
+        Alright! So to give you a clear picture of what program you qualify for and what minimum payment plan suits you best, I’m going to process your application. I’ll also explain the benefits and drawbacks of the solution so you can make an informed decision.
       </p>
-
       <p className="text-base leading-relaxed">
-        So, talking about these debts — what sort of debts are these? Are these <strong>credit cards</strong>, <strong>loans</strong>, or a bit of both?
+        So, talking about these debts — what sort of debts are these? Are these credit cards, loans, or a bit of both?
       </p>
     </div>
   );

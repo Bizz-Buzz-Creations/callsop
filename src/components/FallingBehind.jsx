@@ -44,9 +44,10 @@ const FallingBehind = ({ value = "", onChange }) => {
         </p>
 
         <p>
-          To give you a clear picture of which program you qualify for and what minimum payment plan is best suited for you, I’m going to transfer this call to one of my senior supervisors. He will guide you further.
-          <br />
-          <strong>Please bear with me.</strong>
+          Alright! So to give you a clear picture of what program you qualify for and what minimum payment plan suits you best, I’m going to process your application. I’ll also explain the benefits and drawbacks of the solution so you can make an informed decision.
+        </p>
+        <p>
+          So, talking about these debts — what sort of debts are these? Are these credit cards, loans, or a bit of both?
         </p>
       </div>
     </div>
