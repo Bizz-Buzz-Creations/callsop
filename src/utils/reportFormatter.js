@@ -9,7 +9,28 @@ export function generateReportFromLocalStorage() {
   if (!data) return 'No data found in localStorage.';
 
   const lines = [];
+
   lines.push("DEBTS LEVEL");
+
+  const overallDebt = parseFloat(data.debtConfirmation?.debt || 0);
+  const overallPayment = parseFloat(data.debtConfirmation?.payment || 0);
+  const delaySince = data.debtConfirmation?.delaySince;
+  const handlingMethod = data.debtConfirmation?.handlingMethod;
+  const companyType = data.debtConfirmation?.companyType;
+  const badge = data.debtConfirmation?.badge;
+
+  if (overallDebt > 0 || overallPayment > 0 || badge) {
+    lines.push(`${formatCurrency(overallDebt)} - ${formatCurrency(overallPayment)}/month (Since ${delaySince})`);
+    if (badge) {
+      lines.push(badge);
+    }
+  }
+
+  if (handlingMethod === "myself") {
+    lines.push(`${handlingMethod}`)
+  } else {
+    lines.push(`${handlingMethod} - ${companyType}`)
+  }
 
   const debtSections = [
     "loan", "creditCard", "storeCard", "catalog", "gas", "electric", "water",

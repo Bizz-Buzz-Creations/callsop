@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Minus } from 'lucide-react';
 
 const DynamicInputGenerator = ({ value = [], onChange }) => {
-  const [number, setNumber] = useState(0);
+  const [number, setNumber] = useState(value.length || 0);
   // Each input row is an object: { name: '', amount: '', payment: '' }
   const [inputs, setInputs] = useState(value);
 
