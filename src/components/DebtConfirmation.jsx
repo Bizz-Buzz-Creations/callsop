@@ -136,7 +136,7 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
         onChange={val => handleInput("mobileContact", val)}
       />
 
-      <h3 className='text-xl font-medium'>Government Debts (GD): <span className='font-normal text-lg'>Ask Is there any debts with the Gov. Like Over payment or advance payment of any benefits, Any CCJ Or HRMC or any Bailiffs Debts?</span></h3>
+      <h3 className='text-xl font-medium'>Government Debts (GD): <span className='font-normal text-lg'>Ask Is there any debts with the Gov. Like Over payment or advance payment of any benefits, Any CCJ Or HMRC or any Bailiffs Debts?</span></h3>
       <LabeledInputGroup
         label="Over Payment"
         value={value.overPayment || []}

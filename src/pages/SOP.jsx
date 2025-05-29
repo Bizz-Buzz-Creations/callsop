@@ -7,6 +7,7 @@ import { ListRestart } from "lucide-react";
 import { Tooltip } from "react-tooltip";
 import 'react-tooltip/dist/react-tooltip.css';
 import SummaryReport from "../components/SummaryReport";
+import ScrollToTopButton from "../components/ScrollToTopButton";
 
 // Utility functions for localStorage
 const STORAGE_KEY = "sopFormData";
@@ -57,12 +58,12 @@ const SOP = () => {
         data-tooltip-id="my-tooltip"
         data-tooltip-content="Reset Data"
         onClick={handleReset}
-        className="p-2 bg-slate-400 text-white rounded-full hover:bg-indigo-700 transition absolute right-2 top-2"
+        className="p-2 bg-slate-400 text-white rounded-full hover:bg-indigo-600 transition absolute right-2 top-2"
       >
         <ListRestart />
       </button>
 
-      <Tooltip id="my-tooltip" place="top" effect="solid" className="!bg-indigo-700 !font-semibold" />
+      <Tooltip id="my-tooltip" place="top" effect="solid" className="!bg-indigo-500 !font-semibold" />
 
       <DebtConfirmation
         value={formData.debtConfirmation || {}}
@@ -88,6 +89,8 @@ const SOP = () => {
         </pre> */}
         <SummaryReport />
       </div>
+
+      <ScrollToTopButton />
     </section>
   );
 };
