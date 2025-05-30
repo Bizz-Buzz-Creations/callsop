@@ -100,7 +100,7 @@
 
 import { Plus, Minus } from 'lucide-react';
 
-const DynamicInputGenerator = ({ value = [], onChange }) => {
+const DynamicInputGenerator = ({ value = [], onChange, isArrear = "false" }) => {
   const handleChange = (e) => {
     const newLength = parseInt(e.target.value) || 0;
     const newInputs = Array.from({ length: newLength }, (_, i) => value[i] || { name: '', amount: '', payment: '' });
@@ -150,29 +150,59 @@ const DynamicInputGenerator = ({ value = [], onChange }) => {
 
       <div className="mt-4 space-y-2">
         {value.map((input, index) => (
-          <div key={index} className='flex gap-5'>
-            <input
-              type="text"
-              value={input.name}
-              onChange={(e) => handleInputChange(index, 'name', e.target.value)}
-              placeholder="Name"
-              className="border rounded w-full indent-1 p-1"
-            />
-            <input
-              type="number"
-              value={input.amount}
-              onChange={(e) => handleInputChange(index, 'amount', e.target.value)}
-              placeholder="Amount"
-              className="border rounded w-full indent-1 p-1"
-            />
-            <input
-              type="number"
-              value={input.payment}
-              onChange={(e) => handleInputChange(index, 'payment', e.target.value)}
-              placeholder="Payment"
-              className="border rounded w-full indent-1 p-1"
-            />
-          </div>
+          <>
+            <div key={index} className='flex gap-5'>
+              <input
+                type="text"
+                value={input.name}
+                onChange={(e) => handleInputChange(index, 'name', e.target.value)}
+                placeholder="Name"
+                className="border rounded w-full indent-1 p-1"
+              />
+              <input
+                type="number"
+                value={input.amount}
+                onChange={(e) => handleInputChange(index, 'amount', e.target.value)}
+                placeholder="Amount"
+                className="border rounded w-full indent-1 p-1"
+              />
+              <input
+                type="number"
+                value={input.payment}
+                onChange={(e) => handleInputChange(index, 'payment', e.target.value)}
+                placeholder="Payment"
+                className="border rounded w-full indent-1 p-1"
+              />
+            </div>
+
+            {isArrear === "true" && (
+              <div className="flex items-center gap-4 mb-4">
+                <span className="text-lg font-medium">Arrear</span>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={`arrear-${index}`}
+                      value="current"
+                      checked={input.arrear === "current"}
+                      onChange={(e) => handleInputChange(index, 'arrear', e.target.value)}
+                    />
+                    Current Year
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={`arrear-${index}`}
+                      value="previous"
+                      checked={input.arrear === "previous"}
+                      onChange={(e) => handleInputChange(index, 'arrear', e.target.value)}
+                    />
+                    Previous Year
+                  </label>
+                </div>
+              </div>
+            )}
+          </>
         ))}
       </div>
     </div>

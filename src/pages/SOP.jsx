@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DebtConfirmation from "../components/DebtConfirmation";
-import EmployementInfo from "../components/EmploymentInfo";
+import EmployementInfo from "../components/EmployementInfo";
 import MaritalStatus from "../components/MaritalStatus";
 import RentalDetails from "../components/RentalDetails";
 import { ListRestart } from "lucide-react";
@@ -8,6 +8,7 @@ import { Tooltip } from "react-tooltip";
 import 'react-tooltip/dist/react-tooltip.css';
 import SummaryReport from "../components/SummaryReport";
 import ScrollToTopButton from "../components/ScrollToTopButton";
+import UserDetails from "../components/UserDetails";
 
 // Utility functions for localStorage
 const STORAGE_KEY = "sopFormData";
@@ -78,15 +79,20 @@ const SOP = () => {
         onChange={(v) => handleUpdate("maritalStatus", v)}
       />
       <EmployementInfo
-        value={formData.employmentInfo || {}}
-        onChange={(v) => handleUpdate("employmentInfo", v)}
+        value={formData.employementInfo || {}}
+        onChange={(v) => handleUpdate("employementInfo", v)}
+      />
+
+      <UserDetails
+        value={formData.userDetails || {}}
+        onChange={(v) => handleUpdate("userDetails", v)}
       />
 
       <div className="mt-8 p-1 bg-white rounded shadow">
-        {/* <h2 className="text-xl font-bold mb-2">All Entered Values</h2>
+        <h2 className="text-xl font-bold mb-2">All Entered Values</h2>
         <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">
           {JSON.stringify(formData, null, 2)}
-        </pre> */}
+        </pre>
         <SummaryReport />
       </div>
 

@@ -10,6 +10,20 @@ export function generateReportFromLocalStorage() {
 
   const lines = [];
 
+  const userInfo = [
+    "customerName", "address", "postcode", "contactNumber", "emailAddress", "dob"
+  ];
+
+  if (data.userDetails) {
+    userInfo.forEach((key) => {
+      const value = data.userDetails[key];
+      if (value !== undefined && value !== "") {
+        lines.push(`${value}`);
+      }
+    });
+  }
+  lines.push("");
+
   lines.push("DEBTS LEVEL");
 
   const overallDebt = parseFloat(data.debtConfirmation?.debt || 0);
@@ -48,7 +62,17 @@ export function generateReportFromLocalStorage() {
         const payment = parseFloat(item.payment || 0);
         totalDebt += amount;
         totalPayment += payment;
-        lines.push(`- ${item.name} – ${formatCurrency(amount)} – ${formatCurrency(payment)}/month`);
+
+        const baseLine = `- ${item.name} – ${formatCurrency(amount)} – ${formatCurrency(payment)}/month`;
+
+        // Add arrear note for specific keys
+        const needsArrearInfo = ["gas", "electric", "water", "mobileContact"].includes(key);
+        const arrearInfo = needsArrearInfo && item.arrear
+          ? ` (${item.arrear === "current" ? "Current Year" : "Previous Year"})`
+          : "";
+
+        lines.push(baseLine + arrearInfo);
+        // lines.push(`- ${item.name} – ${formatCurrency(amount)} – ${formatCurrency(payment)}/month`);
       });
     }
   });
@@ -88,7 +112,7 @@ export function generateReportFromLocalStorage() {
   lines.push("INCOME\n");
 
   lines.push("Individual");
-  Object.entries(data.employmentInfo || {}).forEach(([key, value]) => {
+  Object.entries(data.employementInfo || {}).forEach(([key, value]) => {
     if (key.startsWith("individual") && parseFloat(value) > 0) {
       const label = labelFromKey(key, "individual");
       lines.push(`- ${label} – ${formatCurrency(value)}/month`);
@@ -98,7 +122,7 @@ export function generateReportFromLocalStorage() {
   lines.push("");
 
   lines.push("Partner");
-  Object.entries(data.employmentInfo || {}).forEach(([key, value]) => {
+  Object.entries(data.employementInfo || {}).forEach(([key, value]) => {
     if (key.startsWith("partner") && parseFloat(value) > 0) {
       const label = labelFromKey(key, "partner");
       lines.push(`- ${label} – ${formatCurrency(value)}/month`);

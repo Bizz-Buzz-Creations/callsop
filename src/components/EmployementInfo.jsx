@@ -1,7 +1,37 @@
+import { useEffect, useState } from "react";
+import AskQuestion from "./AskQuestion";
 import DualInputRow from "./DualInputRow";
 import TitledDualInputSection from "./TitledDualInputSection";
 
 const EmployementInfo = ({ value = {}, onChange }) => {
+  const [haveKids, setHaveKids] = useState(false);
+
+  useEffect(() => {
+    const updateHaveKidsFromStorage = () => {
+      const storedData = localStorage.getItem('sopFormData');
+      try {
+        const parsed = JSON.parse(storedData);
+        setHaveKids(parsed?.maritalStatus?.haveKids === "yes");
+      } catch (err) {
+        console.error("Error parsing localStorage data", err);
+      }
+    };
+
+    // Polling
+    const interval = setInterval(updateHaveKidsFromStorage, 1000);
+
+    // Listen for cross-tab changes
+    window.addEventListener("storage", updateHaveKidsFromStorage);
+
+    // Initial check
+    updateHaveKidsFromStorage();
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", updateHaveKidsFromStorage);
+    };
+  }, [])
+
   // Helper to update a field
   const handleChange = (field, val) => {
     onChange({ ...value, [field]: val });
@@ -12,7 +42,7 @@ const EmployementInfo = ({ value = {}, onChange }) => {
       <h2 className="text-2xl font-semibold my-4">
         Employment Information:{" "}
         <span className='font-normal text-lg'>
-          Are you working any where as a Full-time, Part-time, Self Employed or are you on benefits.
+          Are you working anywhere as a Full-time, Part-time, Self Employed or are you on benefits.
         </span>
       </h2>
       <h3 className='text-xl font-medium'>Individual Income:</h3>
@@ -50,6 +80,17 @@ const EmployementInfo = ({ value = {}, onChange }) => {
         onChangeLeft={val => handleChange("individualStatePension", val)}
         onChangeRight={val => handleChange("individualPrivatePension", val)}
       />
+      {haveKids && (
+        <>
+          <AskQuestion question="Are you claiming any child benefit for you kids?" />
+          <DualInputRow
+            labelLeft="Child Benefits"
+            valueLeft={value.individualCB || ""}
+            onChangeLeft={val => handleChange("individualCB", val)}
+          />
+        </>
+      )}
+
       <h3 className='text-xl font-medium'>Partner Income:</h3>
       <DualInputRow
         labelLeft="Full-time (FT)"
@@ -85,6 +126,16 @@ const EmployementInfo = ({ value = {}, onChange }) => {
         onChangeLeft={val => handleChange("partnerStatePension", val)}
         onChangeRight={val => handleChange("partnerPrivatePension", val)}
       />
+      {haveKids && (
+        <>
+          <AskQuestion question="Are you claiming any child benefit for you kids?" />
+          <DualInputRow
+            labelLeft="Child Benefits"
+            valueLeft={value.partnerCB || ""}
+            onChangeLeft={val => handleChange("partnerCB", val)}
+          />
+        </>
+      )}
     </>
   );
 };

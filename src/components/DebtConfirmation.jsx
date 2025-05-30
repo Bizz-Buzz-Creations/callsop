@@ -119,21 +119,25 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
         label="Gas"
         value={value.gas || []}
         onChange={val => handleInput("gas", val)}
+        isArrear="true" 
       />
       <LabeledInputGroup
         label="Electric"
         value={value.electric || []}
         onChange={val => handleInput("electric", val)}
+        isArrear="true"
       />
       <LabeledInputGroup
         label="Water"
         value={value.water || []}
         onChange={val => handleInput("water", val)}
+        isArrear="true"
       />
       <LabeledInputGroup
         label="Mobile Contact"
         value={value.mobileContact || []}
         onChange={val => handleInput("mobileContact", val)}
+        isArrear="true"
       />
 
       <h3 className='text-xl font-medium'>Government Debts (GD): <span className='font-normal text-lg'>Ask Is there any debts with the Gov. Like Over payment or advance payment of any benefits, Any CCJ Or HMRC or any Bailiffs Debts?</span></h3>
