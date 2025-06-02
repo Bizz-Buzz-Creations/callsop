@@ -11,7 +11,7 @@ const UserDetails = ({ value = {}, onChange }) => {
   return (
     <div className="mx-auto text-gray-800">
       
-      <AskQuestion question="Now I am going to upload these details on to the portal to look for the option so, just for the data security could you help me out with your full name for these." />
+      <AskQuestion tag="Ask" question="Now I am going to upload these details on to the portal to look for the option so, just for the data security could you help me out with your full name for these." />
 
       <h2 className="text-2xl font-semibold">User Information</h2>
 
@@ -23,7 +23,7 @@ const UserDetails = ({ value = {}, onChange }) => {
         type="text"
       />
 
-      <AskQuestion question="First line of your address along with your postcode." />
+      <AskQuestion tag="Ask" question="First line of your address along with your postcode." />
 
       <DualInputRow
         labelLeft="First line of your address"
@@ -42,7 +42,7 @@ const UserDetails = ({ value = {}, onChange }) => {
         type="text"
       />
 
-      <AskQuestion question="Can you share your email so we can send soft copies of the paperwork?" />
+      <AskQuestion tag="Ask" question="Can you share your email so we can send soft copies of the paperwork?" />
 
       <DualInputRow
         labelLeft="Email Address"

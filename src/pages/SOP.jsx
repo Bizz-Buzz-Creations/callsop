@@ -89,10 +89,10 @@ const SOP = () => {
       />
 
       <div className="mt-8 p-1 bg-white rounded shadow">
-        <h2 className="text-xl font-bold mb-2">All Entered Values</h2>
+        {/* <h2 className="text-xl font-bold mb-2">All Entered Values</h2>
         <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">
           {JSON.stringify(formData, null, 2)}
-        </pre>
+        </pre> */}
         <SummaryReport />
       </div>
 

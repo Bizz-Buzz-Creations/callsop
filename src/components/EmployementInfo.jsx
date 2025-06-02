@@ -46,6 +46,7 @@ const EmployementInfo = ({ value = {}, onChange }) => {
         </span>
       </h2>
       <h3 className='text-xl font-medium'>Individual Income:</h3>
+      <AskQuestion tag="Full & Part-Time Ask" question="How much you bring back after taxes and deductions every month." />
       <DualInputRow
         labelLeft="Full-time (FT)"
         labelRight="Part-time (PT)"
@@ -54,6 +55,8 @@ const EmployementInfo = ({ value = {}, onChange }) => {
         onChangeLeft={val => handleChange("individualFT", val)}
         onChangeRight={val => handleChange("individualPT", val)}
       />
+      <AskQuestion tag="Sole Trader & Director Ask" question="Are you up-to-date with your tax and returns of previous year.
+" />
       <TitledDualInputSection
         title="Self Employed (SE):"
         labelLeft="Sole Trader"
@@ -82,7 +85,7 @@ const EmployementInfo = ({ value = {}, onChange }) => {
       />
       {haveKids && (
         <>
-          <AskQuestion question="Are you claiming any child benefit for you kids?" />
+          <AskQuestion tag="Ask" question="Are you claiming any child benefit for you kids?" />
           <DualInputRow
             labelLeft="Child Benefits"
             valueLeft={value.individualCB || ""}
@@ -92,6 +95,7 @@ const EmployementInfo = ({ value = {}, onChange }) => {
       )}
 
       <h3 className='text-xl font-medium'>Partner Income:</h3>
+      <AskQuestion tag="Full & Part-Time Ask" question="How much you bring back after taxes and deductions every month." />
       <DualInputRow
         labelLeft="Full-time (FT)"
         labelRight="Part-time (PT)"
@@ -100,6 +104,8 @@ const EmployementInfo = ({ value = {}, onChange }) => {
         onChangeLeft={val => handleChange("partnerFT", val)}
         onChangeRight={val => handleChange("partnerPT", val)}
       />
+      <AskQuestion tag="Sole Trader & Director Ask" question="Are you up-to-date with your tax and returns of previous year.
+" />
       <TitledDualInputSection
         title="Self Employed (SE):"
         labelLeft="Sole Trader"
@@ -128,7 +134,7 @@ const EmployementInfo = ({ value = {}, onChange }) => {
       />
       {haveKids && (
         <>
-          <AskQuestion question="Are you claiming any child benefit for you kids?" />
+          <AskQuestion tag="Ask" question="Are you claiming any child benefit for you kids?" />
           <DualInputRow
             labelLeft="Child Benefits"
             valueLeft={value.partnerCB || ""}
