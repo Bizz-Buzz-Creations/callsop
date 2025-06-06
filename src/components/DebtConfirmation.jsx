@@ -119,25 +119,25 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
         label="Gas"
         value={value.gas || []}
         onChange={val => handleInput("gas", val)}
-        isArrear="true" 
+        isArrear={true} 
       />
       <LabeledInputGroup
         label="Electric"
         value={value.electric || []}
         onChange={val => handleInput("electric", val)}
-        isArrear="true"
+        isArrear={true}
       />
       <LabeledInputGroup
         label="Water"
         value={value.water || []}
         onChange={val => handleInput("water", val)}
-        isArrear="true"
+        isArrear={true}
       />
       <LabeledInputGroup
         label="Mobile Contact"
         value={value.mobileContact || []}
         onChange={val => handleInput("mobileContact", val)}
-        isArrear="true"
+        isArrear={true}
       />
 
       <h3 className='text-xl font-medium'>Government Debts (GD): <span className='font-normal text-lg'>Ask Is there any debts with the Gov. Like Over payment or advance payment of any benefits, Any CCJ Or HMRC or any Bailiffs Debts?</span></h3>
@@ -145,26 +145,38 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
         label="Over Payment"
         value={value.overPayment || []}
         onChange={val => handleInput("overPayment", val)}
+        isGD={true}
       />
       <LabeledInputGroup
         label="Advance Payment"
         value={value.advancePayment || []}
         onChange={val => handleInput("advancePayment", val)}
+        isGD={true}
       />
       <LabeledInputGroup
         label="CCJ"
         value={value.ccj || []}
         onChange={val => handleInput("ccj", val)}
+        isGD={true}
       />
       <LabeledInputGroup
         label="HMRC"
-        value={value.hrms || []}
+        value={value.hmrc || []}
         onChange={val => handleInput("hmrc", val)}
+        isGD={true}
+      />
+      <LabeledInputGroup
+        label="Council Tax"
+        value={value.councilTax || []}
+        onChange={val => handleInput("councilTax", val)}
+        isArrear={true} 
+        isGD={true}
       />
       <LabeledInputGroup
         label="Others"
         value={value.others || []}
         onChange={val => handleInput("others", val)}
+        isGD={true}
       />
     </div>
   );

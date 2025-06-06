@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import DynamicInputGenerator from "./DynamicInputGenerator";
 
-const LabeledInputGroup = ({ label, value = "", onChange, isArrear }) => {
+const LabeledInputGroup = ({ label, value = "", onChange, isArrear, isGD }) => {
   // Handler for input change
   // const handleInput = (e) => {
   //   onChange && onChange(e.target.value);
@@ -10,7 +10,7 @@ const LabeledInputGroup = ({ label, value = "", onChange, isArrear }) => {
   return (
     <div className=" items-center mb-4 w-full">
       <label className="block mb-1 font-medium">{label}:</label>
-      <DynamicInputGenerator value={value} onChange={onChange} isArrear={isArrear} />
+      <DynamicInputGenerator value={value} onChange={onChange} isArrear={isArrear} isGD={isGD} />
     </div>
   )
 }

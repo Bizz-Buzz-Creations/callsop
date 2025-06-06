@@ -45,8 +45,9 @@ const EmployementInfo = ({ value = {}, onChange }) => {
           Are you working anywhere as a Full-time, Part-time, Self Employed or are you on benefits.
         </span>
       </h2>
+      <AskQuestion tag="Ask" question={<><strong>In-case of Full & Part-Time Income:</strong> How much you bring back after taxes and deductions every month.</>} />
+      <AskQuestion tag="Ask" question={<><strong>In-case of Sole Trader & Director Income:</strong> Are you up-to-date with your tax and returns of previous year.</>} />
       <h3 className='text-xl font-medium'>Individual Income:</h3>
-      <AskQuestion tag="Full & Part-Time Ask" question="How much you bring back after taxes and deductions every month." />
       <DualInputRow
         labelLeft="Full-time (FT)"
         labelRight="Part-time (PT)"
@@ -55,8 +56,6 @@ const EmployementInfo = ({ value = {}, onChange }) => {
         onChangeLeft={val => handleChange("individualFT", val)}
         onChangeRight={val => handleChange("individualPT", val)}
       />
-      <AskQuestion tag="Sole Trader & Director Ask" question="Are you up-to-date with your tax and returns of previous year.
-" />
       <TitledDualInputSection
         title="Self Employed (SE):"
         labelLeft="Sole Trader"
@@ -95,7 +94,6 @@ const EmployementInfo = ({ value = {}, onChange }) => {
       )}
 
       <h3 className='text-xl font-medium'>Partner Income:</h3>
-      <AskQuestion tag="Full & Part-Time Ask" question="How much you bring back after taxes and deductions every month." />
       <DualInputRow
         labelLeft="Full-time (FT)"
         labelRight="Part-time (PT)"
@@ -104,8 +102,6 @@ const EmployementInfo = ({ value = {}, onChange }) => {
         onChangeLeft={val => handleChange("partnerFT", val)}
         onChangeRight={val => handleChange("partnerPT", val)}
       />
-      <AskQuestion tag="Sole Trader & Director Ask" question="Are you up-to-date with your tax and returns of previous year.
-" />
       <TitledDualInputSection
         title="Self Employed (SE):"
         labelLeft="Sole Trader"

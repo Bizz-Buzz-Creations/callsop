@@ -31,3 +31,6 @@ pnpm-debug.log*
 
 # Windows system files
 Thumbs.db
+
+# Testing file for fallback
+TestCrash.jsx

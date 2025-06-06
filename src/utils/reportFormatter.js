@@ -48,7 +48,7 @@ export function generateReportFromLocalStorage() {
 
   const debtSections = [
     "loan", "creditCard", "storeCard", "catalog", "gas", "electric", "water",
-    "mobileContact", "others", "overPayment", "advancePayment", "ccj", "hrms"
+    "mobileContact", "others", "overPayment", "advancePayment", "ccj", "hmrc", "councilTax"
   ];
 
   let totalDebt = 0;
@@ -66,7 +66,7 @@ export function generateReportFromLocalStorage() {
         const baseLine = `- ${item.name} – ${formatCurrency(amount)} – ${formatCurrency(payment)}/month`;
 
         // Add arrear note for specific keys
-        const needsArrearInfo = ["gas", "electric", "water", "mobileContact"].includes(key);
+        const needsArrearInfo = ["gas", "electric", "water", "mobileContact", "councilTax"].includes(key);
         const arrearInfo = needsArrearInfo && item.arrear
           ? ` (${item.arrear === "current" ? "Current Year" : "Previous Year"})`
           : "";
