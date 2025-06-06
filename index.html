@@ -10,6 +10,16 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon/android-chrome-192x192.png">
   <link rel="manifest" href="/favicon/site.webmanifest">
   <title>CallSOP</title>
+  <script>
+    try {
+      if (!window.Promise || !window.fetch || !Object.assign) {
+        window.location.href = "/fallback.html";
+      }
+    } catch (e) {
+      window.location.href = "/fallback.html";
+    }
+  </script>
+
 </head>
 
 <body>
