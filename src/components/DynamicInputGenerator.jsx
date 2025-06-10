@@ -24,14 +24,24 @@ const ArrearOptions = ({ index, value, onChange }) => (
 const InputRow = ({ index, input, isGD, isArrear, onChange }) => (
   <div>
     <div className="flex gap-5">
-      {isGD ? (
-        <input
-          type="text"
-          value={input.name}
-          onChange={(e) => onChange(index, "name", e.target.value)}
-          placeholder="Enter Creditor Name"
-          className="border rounded w-full p-1"
-        />
+      {isGD || input.name === 'Other' ? (
+        input.name === 'Other' && !isGD ? (
+          <input
+            type="text"
+            value={input.customName || ''}
+            onChange={(e) => onChange(index, "customName", e.target.value)}
+            placeholder="Enter Creditor Name"
+            className="border rounded w-full p-1"
+          />
+        ) : (
+          <input
+            type="text"
+            value={input.name}
+            onChange={(e) => onChange(index, "name", e.target.value)}
+            placeholder="Enter Creditor Name"
+            className="border rounded w-full p-1"
+          />
+        )
       ) : (
         <select
           value={input.name}
@@ -44,6 +54,7 @@ const InputRow = ({ index, input, isGD, isArrear, onChange }) => (
               {cred.creditor}
             </option>
           ))}
+          <option value="Other">Other</option>
         </select>
       )}
       <input
@@ -78,9 +89,36 @@ const DynamicInputGenerator = ({ value = [], onChange, isArrear, isGD }) => {
     onChange(newInputs);
   };
 
+  // const handleInputChange = (index, field, fieldValue) => {
+  //   const updatedInputs = [...value];
+  //   updatedInputs[index] = { ...updatedInputs[index], [field]: fieldValue };
+  //   onChange(updatedInputs);
+  // };
+
   const handleInputChange = (index, field, fieldValue) => {
     const updatedInputs = [...value];
-    updatedInputs[index] = { ...updatedInputs[index], [field]: fieldValue };
+
+    if (field === "name") {
+      if (fieldValue === "Other") {
+        updatedInputs[index] = {
+          ...updatedInputs[index],
+          name: "Other",
+          customName: ""
+        };
+      } else {
+        updatedInputs[index] = {
+          ...updatedInputs[index],
+          name: fieldValue,
+          customName: "" // clear custom if not "Other"
+        };
+      }
+    } else {
+      updatedInputs[index] = {
+        ...updatedInputs[index],
+        [field]: fieldValue
+      };
+    }
+
     onChange(updatedInputs);
   };
 

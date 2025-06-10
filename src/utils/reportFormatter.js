@@ -63,7 +63,8 @@ export function generateReportFromLocalStorage() {
         totalDebt += amount;
         totalPayment += payment;
 
-        const baseLine = `- ${item.name} – ${formatCurrency(amount)} – ${formatCurrency(payment)}/month`;
+        const displayName = item.name === "Other" ? item.customName : item.name;
+        const baseLine = `- ${displayName} – ${formatCurrency(amount)} – ${formatCurrency(payment)}/month`;
 
         // Add arrear note for specific keys
         const needsArrearInfo = ["gas", "electric", "water", "mobileContact", "councilTax"].includes(key);
