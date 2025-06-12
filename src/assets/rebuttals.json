@@ -1,31 +1,35 @@
 [
   {
-    "question": "1. Who you are? (about your company)",
-    "answer": "We are company who is specialised in providing solutions related to unsecured debts and finances, we have working in collaboration of six different companies in order to provide free finance assistance. \nNow continue with the reason I called you..."
+    "question": "1. Who are you? (About your company)",
+    "answer": "We are a company specialized in providing solutions related to unsecured debts and finances. We work in collaboration with six different companies to offer free financial assistance. Now, continuing with the reason I called you..."
   },
   {
-    "question": "2. Where do you got my information that I got debt?",
-    "answer": "So, basically we've got list of numbers of those individuals who are either making high payments or payments with high interest and charges, usually these details are transferred to us via different portals, such as CRF (that is Credit Resolution Forum), EXPERIAN, Credit Karma, and many more. Our job is to make you aware about the different debt solutions that will make it easier for you to clear you existence debts. \nNow continue with the solution that is all the high interest and charges..."
+    "question": "2. Where did you get my information that I have debt?",
+    "answer": "So, basically, we've got a list of numbers for individuals who are either making high payments or payments with high interest and charges. These details are typically transferred to us via different portals, such as CRF (Credit Resolution Forum), EXPERIAN, Credit Karma, and many others. Our job is to make you aware of the different debt solutions that will make it easier for you to clear your existing debts. Now, continuing with the solution, which is all about reducing high interest and charges..."
   },
   {
-    "question": "3. How will you frezz down my interest and charges or How will you right-off my debts?",
-    "answer": "So, basically there are 7 - 8 different options that are currently running in the Financial Market. So, based on you current situation and kind of debts that you are having, I will try my best to offer you the solution, that is as per your interest and not only this I'll also tell you all the benefit and the drawback of all the available solution that you are going to qualify for..."
+    "question": "3. How will you freeze down my interest and charges, or how will you write off my debts?",
+    "answer": "There are 7-8 different options currently available in the financial market. Based on your current situation and the kind of debts you have, I will try my best to offer you the solution that is in your best interest. Not only that, but I will also explain the benefits and drawbacks of all the available solutions that you qualify for..."
   },
   {
-    "question": "4. What are the names of solutions that you told me initially?",
-    "answer": "Since there are options but you had insisted to know the name of the options, so it could be an IVA, it could be a DMP, it could be DRO, it could be Trust Deed, it could be Bankruptcies could be administration order, or it could be debt litigation. However initially I'm not sure about your current situation neither I'm sure about your current circumstance, so I want be able to give you the right answer, as to which solution is going to be more fruitful for you. \nContinue with solution and advice that you are going to get is totally free or cost..."
+    "question": "4. What are the names of the solutions that you told me initially?",
+    "answer": "Since you insisted on knowing the names of the options, here they are: it could be an IVA, DMP, DRO, Trust Deed, Bankruptcy, Administration Order, or Debt Litigation. However, initially, I'm not sure about your current situation or circumstances, so I won't be able to give you the right answer as to which solution will be more fruitful for you. Continuing with the solution and advice, it will be totally free of cost..."
   },
   {
-    "question": "5. Whats in it for you? or How you guys make money? or Whats the catch?",
-    "answer": "We don't get anything from you as we get paid directly from the licence practiners once you case is approved and you are helply proceeding so oviusly the cummition is been paid but not by you. \nContinue with also there is no oblicattion for you to proceed with any solution..."
+    "question": "5. What's in it for you? How do you guys make money? What's the catch?",
+    "answer": "We don't get anything from you, as we are paid directly by the licensed practitioners once your case is approved and you are proceeding. Obviously, the commission is paid, but not by you. Also, there is no obligation for you to proceed with any solution..."
   },
   {
     "question": "6. Send me an email.",
-    "answer": "Surely, we are going to share an email about the solution that you are going to qualify for but I'm prety unsure as of now which solution you are going to qualify for that we need some basic information about your debt whom you owe how much you owe and how much you making payments for. So that we can analyze your situation and can guide accordingly..."
+    "answer": "Surely! We will send you an email about the solution that you are likely to qualify for, but I'm unsure right now which solution that would be. We need some basic information about your debt, who you owe, how much you owe, and how much you're currently paying. This way, we can analyze your situation and guide you accordingly..."
   },
   {
-    "question": "7. Is is going to hamper my credit rating?",
-    "answer": "Since we are not offering any bankrupticy so it's not going to make you blacklisted and you can never opt any more credit, what we are offering is to have an arrangement so that moving forward you won't really have to comprimize with any expences you can have some saving for yourself, and if I ask you what are you current priorities, is your priority to clear these debts off, or are you looking for more credit and loans.\n\nCustomer: My priority is to clear my debts.\nSo, if your priority is to clear these debts off then you can clear these in a much more easiar and efficient way, becuase as of now since payment that you are making involves high interest and charges so what we'll do is frezzing down those interest..."
+    "question": "7. Is it going to hamper my credit rating?",
+    "answer": "Since we are not offering any bankruptcy services, it's not going to blacklist you, and you will still be able to opt for credit in the future. What we are offering is an arrangement so that moving forward, you won't have to compromise with any expenses—you'll be able to save some money for yourself. If I ask you, what are your current priorities? Is your priority to clear these debts, or are you looking for more credit and loans? \n\nCustomer: My priority is to clear my debts. \n\nAnswer: So, if your priority is to clear these debts, then you can do so in a much easier and more efficient way. Right now, since the payments you're making involve high interest and charges, what we'll do is freeze those interest charges..."
+  },
+  {
+    "question": "8. Not Interested.",
+    "answer": "I know that the services that we are offering are not your current priority; however, a lot of our clients felt relief just by knowing that there are certain solutions available in the financial market that can help them get rid of these debts in an easier way. Also, since I have already told you that you are not going to decide anything over the phone with me, nor are you going to take any program today or tomorrow, this call will just give you an update about all the debt solutions that are currently running in the financial market—what solutions you can opt for, and what their benefits and drawbacks are, so that later on you can make an informed decision..."
   },
   {
     "question": "Who is housing disrepair team?",
