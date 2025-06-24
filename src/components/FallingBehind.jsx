@@ -49,6 +49,9 @@ const FallingBehind = ({ value = "", onChange }) => {
         <p>
           So, talking about these debts — what sort of debts are these? Are these credit cards, loans, or a bit of both?
         </p>
+        <p>
+          Now in order to give you a clear picture what best we can do for you, I'm going to connect this call to one of my senior advisor and he'll/She'll assist you further, So just bare with me on the line.
+        </p>
       </div>
     </div>
   );

@@ -93,6 +93,9 @@ const LowPayment = ({ value = {}, onChange }) => {
                 <p>
                   This inflation has caused utilities and fuel prices to spike — so saving through this program means more money <strong>back in your pocket</strong>.
                 </p>
+                <p>
+                  Now in order to give you a clear picture what best we can do for you, I'm going to connect this call to one of my senior advisor and he'll/She'll assist you further, So just bare with me on the line.
+                </p>
               </div>
             </>}
           {value.companyType === 'charity' &&
@@ -119,6 +122,9 @@ const LowPayment = ({ value = {}, onChange }) => {
                 <p>
                   Moreover, this is a <strong>completely free-of-cost solution</strong>.
                 </p>
+                <p>
+                  Now in order to give you a clear picture what best we can do for you, I'm going to connect this call to one of my senior advisor and he'll/She'll assist you further, So just bare with me on the line.
+                </p>
               </div>
             </>}
 
@@ -140,6 +146,9 @@ const LowPayment = ({ value = {}, onChange }) => {
           </p>
           <p>
             So, talking about these debts — what sort of debts are these? Are these credit cards, loans, or a bit of both?
+          </p>
+          <p>
+            Now in order to give you a clear picture what best we can do for you, I'm going to connect this call to one of my senior advisor and he'll/She'll assist you further, So just bare with me on the line.
           </p>
         </div>
       )}

@@ -66,6 +66,9 @@ const HighPayment = ({ value = {}, onChange }) => {
       <p className="text-base leading-relaxed">
         So, talking about these debts — what sort of debts are these? Are these credit cards, loans, or a bit of both?
       </p>
+      <p className="text-base leading-relaxed">
+        Now in order to give you a clear picture what best we can do for you, I'm going to connect this call to one of my senior advisor and he'll/She'll assist you further, So just bare with me on the line.
+      </p>
     </div>
   );
 };
