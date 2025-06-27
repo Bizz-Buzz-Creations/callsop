@@ -51,6 +51,10 @@ const FallingBehind = ({ value = "", onChange }) => {
         </p>
         <p>
           Now in order to give you a clear picture what best we can do for you, I'm going to connect this call to one of my senior advisor and he'll/She'll assist you further, So just bare with me on the line.
+          <br/>
+          OR
+          <br/>
+          Now, in order to see what best we can do for you, I’m going to process the application. We’ll also explain all the benefits and drawbacks of the solution you qualify for, so that you can make an informed decision. So, talking about these debts—what sort of debts are these? Are they credit cards, loans, or a bit of both?
         </p>
       </div>
     </div>
