@@ -6,7 +6,7 @@ const LowPayment = ({ value = {}, onChange }) => {
   };
 
   return (
-    <div className="bg-white space-y-4 p-4 border rounded-lg shadow-md mx-auto">
+    <div className="bg-white space-y-4 p-4 border rounded-lg shadow-md mx-auto w-full">
       <h2 className="text-xl font-semibold text-gray-800">Are you dealing with a debt management company or managing it yourself?</h2>
 
       {/* Primary Selection */}

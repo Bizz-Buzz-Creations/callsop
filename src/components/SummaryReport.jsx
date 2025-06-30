@@ -39,7 +39,7 @@ const SummaryReport = () => {
   };
 
   return (
-    <div className="p-2 max-w-4xl mx-auto">
+    <div className="p-2 w-full mx-auto">
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-2xl font-bold">Report Summary</h2>
         <div className="flex gap-2 flex-wrap">

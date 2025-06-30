@@ -11,7 +11,7 @@ const HighPayment = ({ value = {}, onChange }) => {
   };
 
   return (
-    <div className="bg-white border p-4 rounded-lg shadow-md text-gray-800 max-w-3xl mx-auto space-y-4">
+    <div className="bg-white border p-4 rounded-lg shadow-md text-gray-800 mx-auto space-y-4 w-full">
       <p className="text-base leading-relaxed">
         <strong>Right!</strong> You are making such high payments. Are you compromising with your expenses or are you fine with these payments?
       </p>

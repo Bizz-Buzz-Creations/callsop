@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import LabeledInputGroup from './LabeledInputGroup';
 import FallingBehind from './FallingBehind';
 import HighPayment from './HighPayment';
 import LowPayment from './LowPayment';
+import TokenPayment from './TokenPayement';
 
 const getBadge = (payment) => {
   if (payment === 0) return 'Falling Behind';
@@ -12,6 +12,24 @@ const getBadge = (payment) => {
   if (payment >= 301) return 'High Payment';
   return '';
 };
+
+const getBadgeClass = (badge) => {
+  switch (badge) {
+    case 'High Payment':
+      return 'bg-green-600 text-white';
+    case 'Normal Payment':
+      return 'bg-blue-600 text-white';
+    case 'Low Payment':
+      return 'bg-yellow-500 text-black';
+    case 'Token Payment':
+      return 'bg-orange-500 text-white';
+    case 'Falling Behind':
+      return 'bg-red-600 text-white';
+    default:
+      return '';
+  }
+};
+
 
 const DebtConfirmation = ({ value = {}, onChange }) => {
   const { debt = '', payment = '0' } = value;
@@ -38,6 +56,7 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
             <div className="mb-4 w-full">
               <label className="block mb-1 font-medium">How much your debt?</label>
               <input
+                min="0"
                 type="number"
                 value={debt}
                 onChange={e => handleInput("debt", e.target.value)}
@@ -49,6 +68,7 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
             <div className="mb-4 w-full">
               <label className="block mb-1 font-medium">How much you pay?</label>
               <input
+                min="0"
                 type="number"
                 value={payment}
                 onChange={e => handleInput("payment", e.target.value)}
@@ -59,14 +79,7 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
           </section>
 
           {badge && (
-            <div
-              className={`mt-4 inline-block px-3 py-1 rounded-full text-sm font-semibold text-nowrap
-            ${badge === 'High Payment' ? 'bg-green-600 text-white' : ''}
-            ${badge === 'Normal Payment' ? 'bg-blue-600 text-white' : ''}
-            ${badge === 'Low Payment' ? 'bg-yellow-500 text-black' : ''}
-            ${badge === 'Token Payment' ? 'bg-orange-500 text-white' : ''}
-            ${badge === 'Falling Behind' ? 'bg-red-600 text-white' : ''}`}
-            >
+            <div className={`mt-4 inline-block px-3 py-1 rounded-full text-sm font-semibold text-nowrap ${getBadgeClass(badge)}`}>
               {badge}
             </div>
           )}
@@ -77,13 +90,18 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
             value={value.delaySince || ""}
             onChange={(val) => handleInput("delaySince", val)}
           />}
-        {badge === 'High Payment' && 
-        <HighPayment 
-          value={value}
-          onChange={(updatedSubValues) => {
-            onChange({ ...value, ...updatedSubValues });
-          }}
-        />}
+        {badge === 'Token Payment' &&
+          <TokenPayment
+            value={value.delaySince || ""}
+            onChange={(val) => handleInput("delaySince", val)}
+          />}
+        {badge === 'High Payment' &&
+          <HighPayment
+            value={value}
+            onChange={(updatedSubValues) => {
+              onChange({ ...value, ...updatedSubValues });
+            }}
+          />}
         {(badge === 'Low Payment' || badge === 'Normal Payment') &&
           <LowPayment
             value={value}
@@ -119,7 +137,7 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
         label="Gas"
         value={value.gas || []}
         onChange={val => handleInput("gas", val)}
-        isArrear={true} 
+        isArrear={true}
       />
       <LabeledInputGroup
         label="Electric"
@@ -169,7 +187,7 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
         label="Council Tax"
         value={value.councilTax || []}
         onChange={val => handleInput("councilTax", val)}
-        isArrear={true} 
+        isArrear={true}
         isGD={true}
       />
       <LabeledInputGroup

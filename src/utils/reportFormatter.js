@@ -33,8 +33,8 @@ export function generateReportFromLocalStorage() {
   // const companyType = data.debtConfirmation?.companyType;
   const badge = data.debtConfirmation?.badge;
 
-  if (overallDebt > 0 || overallPayment > 0 || badge) {
-    lines.push(`${formatCurrency(overallDebt)} - ${formatCurrency(overallPayment)}/month ${overallPayment === 0 ? `(Since ${delaySince === "" ? `when?` : `${delaySince}`})` : ''}`);
+  if (overallDebt > 0 || overallPayment > 0 || badge === "Falling Behind" || badge === "Token Payment") {
+    lines.push(`${formatCurrency(overallDebt)} - ${formatCurrency(overallPayment)}/month ${overallPayment <= 10 ? `(Since ${delaySince === "" ? `when?` : `${delaySince}`})` : ''}`);
     // if (badge) {
     //   lines.push(badge);
     // }

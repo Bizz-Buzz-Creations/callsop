@@ -83,7 +83,7 @@ const SOP = () => {
   };
 
   return (
-    <section className="w-3xl mx-auto p-4 border rounded-md shadow bg-gray-100 relative">
+    <section className="max-w-3xl mx-auto p-4 border rounded-md shadow bg-gray-100 relative">
       <button
         data-tooltip-id="my-tooltip"
         data-tooltip-content="Reset Data"

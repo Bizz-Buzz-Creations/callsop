@@ -1,23 +1,18 @@
-import { useState } from 'react';
+import SinceInput from "./SinceInput";
 
 const FallingBehind = ({ value = "", onChange }) => {
   // const [delaySince, setDelaySince] = useState('');
 
   return (
-    <div className="bg-white space-y-4 p-4 border rounded-lg shadow-md mx-auto text-gray-800">
+    <div className="bg-white space-y-4 p-4 border rounded-lg shadow-md mx-auto text-gray-800 w-full">
       <h2 className="text-xl font-semibold">Payment Delay Details</h2>
 
       {/* Input Field */}
-      <div>
-        <label className="block mb-1 font-medium">Since when?</label>
-        <input
-          type="text"
-          placeholder="e.g. January 2024"
-          value={value}
-          onChange={(e) => onChange && onChange(e.target.value)}
-          className="w-full p-1 indent-1 border border-gray-300 rounded"
-        />
-      </div>
+      <SinceInput 
+        value={value}
+        onChange={onChange}
+        label="Since when are you falling behind?"
+      />
 
       {/* Conversational Content */}
       <div className="space-y-3 text-gray-700">
