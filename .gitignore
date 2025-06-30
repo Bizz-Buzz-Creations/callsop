@@ -34,3 +34,5 @@ Thumbs.db
 
 # Testing file for fallback
 TestCrash.jsx
+# Local Netlify folder
+.netlify
