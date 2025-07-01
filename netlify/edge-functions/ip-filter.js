@@ -34,7 +34,7 @@ export default async (request, context) => {
   //   return new Response("Access Denied", { status: 403 });
   // }
 
-  if (!allowedIPs.includes(clientIP)) {
+  if (!clientIP || !isIpAllowed(clientIP, allowedIPs)) {
     const html = await fetch(new URL('/access-denied.html', request.url)).then(res => res.text());
 
     return new Response(html, {
