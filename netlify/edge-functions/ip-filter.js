@@ -30,8 +30,19 @@ export default async (request, context) => {
   const clientIP = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
   console.log("Client IP:", clientIP);
 
-  if (!clientIP || !isIpAllowed(clientIP, allowedIPs)) {
-    return new Response("Access Denied", { status: 403 });
+  // if (!clientIP || !isIpAllowed(clientIP, allowedIPs)) {
+  //   return new Response("Access Denied", { status: 403 });
+  // }
+
+  if (!allowedIPs.includes(clientIP)) {
+    const html = await fetch(new URL('/access-denied.html', request.url)).then(res => res.text());
+
+    return new Response(html, {
+      status: 403,
+      headers: {
+        'Content-Type': 'text/html'
+      }
+    });
   }
 
   return context.next();
