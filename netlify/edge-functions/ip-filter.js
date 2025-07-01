@@ -20,13 +20,7 @@ const isIpAllowed = (ip, allowedList) => {
 };
 
 export default async (request, context) => {
-  const allowedIPs = [
-    "103.217.245.94",
-    "103.148.144.47",
-    "111.235.67.0/24",
-    "202.89.70.6",
-  ];
-
+  const allowedIPs = (process.env.ALLOWED_IPS || "").split(",").map(ip => ip.trim());
   const clientIP = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
   console.log("Client IP:", clientIP);
 
