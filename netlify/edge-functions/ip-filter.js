@@ -35,14 +35,19 @@ export default async (request, context) => {
   // }
 
   if (!clientIP || !isIpAllowed(clientIP, allowedIPs)) {
-    const html = await fetch(new URL('/access-denied.html', request.url)).then(res => res.text());
+    // Serve HTML only for root paths, not for assets
+    if (request.headers.get("accept")?.includes("text/html")) {
+      const html = await fetch("https://callsop.netlify.app/access-denied.html").then(res => res.text());
+      return new Response(html, {
+        status: 403,
+        headers: {
+          "Content-Type": "text/html"
+        }
+      });
+    }
 
-    return new Response(html, {
-      status: 403,
-      headers: {
-        'Content-Type': 'text/html'
-      }
-    });
+    // For non-HTML requests, return a plain 403
+    return new Response("Access Denied", { status: 403 });
   }
 
   return context.next();
