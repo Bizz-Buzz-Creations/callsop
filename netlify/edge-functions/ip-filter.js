@@ -20,7 +20,8 @@ const isIpAllowed = (ip, allowedList) => {
 };
 
 export default async (request, context) => {
-  const allowedIPs = (process.env.ALLOWED_IPS || "").split(",").map(ip => ip.trim());
+  const allowedIPs = (process.env.ALLOWED_IPS || "").split(",").map(ip => ip.trim()).filter(Boolean);
+
   const clientIP = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
   console.log("Client IP:", clientIP);
 
@@ -31,11 +32,19 @@ export default async (request, context) => {
   if (!clientIP || !isIpAllowed(clientIP, allowedIPs)) {
     // Serve HTML only for root paths, not for assets
     if (request.headers.get("accept")?.includes("text/html")) {
-      const html = await fetch("https://callsop.netlify.app/access-denied.html").then(res => res.text());
+      let html = "<h1>Access Denied</h1>";
+      try {
+        const res = await fetch("https://callsop.netlify.app/access-denied.html");
+        html = await res.text();
+      } catch (err) {
+        console.error("Failed to load custom Access Denied page", err);
+      }
+
       return new Response(html, {
         status: 403,
         headers: {
-          "Content-Type": "text/html"
+          "Content-Type": "text/html",
+          "Cache-Control": "no-store"
         }
       });
     }
