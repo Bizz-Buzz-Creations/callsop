@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
-import ghost from '../../public/ghost-loader.gif'
+import ghost from '/ghost-loader.gif'
 
 const RebuttalFormModal = ({ isOpen, onClose }) => {
   const [isLoadingForm, setIsLoadingForm] = useState(true);
