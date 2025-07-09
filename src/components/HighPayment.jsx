@@ -7,7 +7,7 @@ const HighPayment = ({ value = {}, onChange }) => {
 
   const messages = {
     fine: `That's great! That you are managing it well. However, in case you keep making the payment in such a way, it will still take a longer time to clear these debts off.`,
-    struggling: `So if you're struggling or compromising with any expenses, then our basic job is to firstly draw down the monthly payment according to your realistic affordability so that you don't have to compromise with the payment that you are making currently. Also, we will freeze down the interest and charges.`,
+    struggling: `So if you're struggling or compromising with any expenses, then our basic job is to firstly drop down the monthly payment according to your realistic affordability so that you don't have to compromise with the payment that you are making currently. Also, we will freeze down the interest and charges.`,
   };
 
   return (
