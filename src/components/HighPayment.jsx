@@ -62,11 +62,13 @@ const HighPayment = ({ value = {}, onChange }) => {
 
       <p className="text-base leading-relaxed">
         Alright! So to give you a clear picture of what program you qualify for and what minimum payment plan suits you best, I’m going to process your application. I’ll also explain the benefits and drawbacks of the solution so you can make an informed decision.
-      </p>
-      <p className="text-base leading-relaxed">
+        <br />
+        OR
+        <br />
         So, talking about these debts — what sort of debts are these? Are these credit cards, loans, or a bit of both?
-      </p>
-      <p className="text-base leading-relaxed">
+        <br />
+        OR
+        <br />
         Now in order to give you a clear picture what best we can do for you, I'm going to connect this call to one of my senior advisor and he'll/She'll assist you further, So just bare with me on the line.
         <br />
         OR
