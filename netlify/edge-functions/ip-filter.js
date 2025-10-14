@@ -24,7 +24,9 @@ export default async (request, context) => {
     "103.217.245.94",
     "103.148.144.47",
     "111.235.67.0/24",
-    "202.89.70.6"
+    "202.89.70.6",
+    "103.148.144.22",
+    "103.217.247.145",
   ];
 
   const clientIP = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
@@ -39,7 +41,9 @@ export default async (request, context) => {
     if (request.headers.get("accept")?.includes("text/html")) {
       let html = "<h1>Access Denied</h1>";
       try {
-        const res = await fetch("https://callsop.netlify.app/access-denied.html");
+        const res = await fetch(
+          "https://callsop.netlify.app/access-denied.html"
+        );
         html = await res.text();
       } catch (err) {
         console.error("Failed to load custom Access Denied page", err);
@@ -49,8 +53,8 @@ export default async (request, context) => {
         status: 403,
         headers: {
           "Content-Type": "text/html",
-          "Cache-Control": "no-store"
-        }
+          "Cache-Control": "no-store",
+        },
       });
     }
 
