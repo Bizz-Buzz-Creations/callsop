@@ -14,6 +14,7 @@
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/postcss": "^4.1.7",
     "@tailwindcss/vite": "^4.1.7",
+    "html2pdf.js": "^0.13.0",
     "ipaddr.js": "^2.2.0",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.511.0",

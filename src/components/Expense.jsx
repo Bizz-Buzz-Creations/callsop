@@ -110,7 +110,9 @@ const Expense = ({ setTotalExpenses, setExpensesData }) => {
   };
 
   const totalExpenses = Object.values(expensesData).reduce((acc, category) => {
-    return acc + Object.values(category).reduce((catAcc, val) => catAcc + val, 0);
+    return (
+      acc + Object.values(category).reduce((catAcc, val) => catAcc + val, 0)
+    );
   }, 0);
 
   useEffect(() => {
@@ -141,19 +143,23 @@ const Expense = ({ setTotalExpenses, setExpensesData }) => {
         ].map((section) => (
           <div key={section}>
             <h4 className="text-xl font-semibold text-gray-700 mb-4 capitalize border-b pb-1">
-              {section.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+              {section
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (str) => str.toUpperCase())}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(expensesData[section]).map(([key, value]) => (
                 <div key={key}>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
                     {key
-                      .replace(/([A-Z])/g, ' $1')
+                      .replace(/([A-Z])/g, " $1")
                       .replace(/^([a-z])/i, (match) => match.toUpperCase())
                       .trim()}
                   </label>
                   <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                    <span className="px-3 py-2 bg-gray-100 text-gray-600 text-sm">£</span>
+                    <span className="px-3 py-2 bg-gray-100 text-gray-600 text-sm">
+                      £
+                    </span>
                     <input
                       type="number"
                       className="w-full px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"

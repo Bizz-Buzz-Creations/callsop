@@ -4,7 +4,7 @@ const Comparison = ({ incomeData, expensesData, totalIncome, totalExpenses }) =>
   // Function to filter out entries with zero values
   const filterNonZeroEntries = (data) => {
     return Object.fromEntries(
-      Object.entries(data).map(([key, value]) => {
+      Object.entries(data).map(([key, value]) => { 
         const filteredValues = Object.entries(value).filter(([_, val]) => val > 0);
         return [key, Object.fromEntries(filteredValues)];
       }).filter(([_, value]) => Object.keys(value).length > 0) // Filter out empty sections
