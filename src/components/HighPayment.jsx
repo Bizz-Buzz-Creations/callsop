@@ -5,76 +5,106 @@ const HighPayment = ({ value = {}, onChange }) => {
     }
   };
 
-  const messages = {
-    fine: `That's great! That you are managing it well. However, in case you keep making the payment in such a way, it will still take a longer time to clear these debts off.`,
-    struggling: `So if you're struggling or compromising with any expenses, then our basic job is to firstly drop down the monthly payment according to your realistic affordability so that you don't have to compromise with the payment that you are making currently. Also, we will freeze down the interest and charges.`,
+  const paymentMessages = {
+    fine: `That's great! You're managing it well. However, even if you continue paying this way, it will still take a longer time to clear these debts.`,
+    struggling: `Due to interest and charges added on top of your payments, your principal amount is reducing at a much slower rate.`,
+  };
+
+  const noticeMessages = {
+    Yes: `So these solution is going  to freeze down all the  high interest and charges completely to 0%, so whatever amount you pay will directly burn the principal amount. This way you can clear your debts off in a much more quicker time as compared to the time taken by yourself. Also you can save some more because you no longer have to make payments with high int and chargers. Moreover, we will explore the possibility of writing off some part of your debts as well. Alright! So to give you a clear picture on what program you qualify for and what minimum payment plan suits you best, I’m going to process your application. I’ll also explain the benefits and drawbacks of the solution so you can make an informed decision`,
+    No: `You might have not noticed but whenever you take any credit card or loan it comes with An APR until you are in any sort of arrangement with the creditors and on an avg it is around 24% so if you have got a debt level round about 7 grand then around 140 is simply going towards the int and charges.  and these solution is going  to freeze down all the  high interest and charges completely to 0%, so whatever amount you pay will directly burn the principal amount. This way you can clear your debts off in a much more quicker time as compared to the time taken by yourself. Also you can save some more because you no longer have to make payments with high int and chargers. Right ? 
+    Moreover, we will explore the possibility of writing off some part of your debts as well, ok? 
+    So to give you a clear picture of what program you qualify for and what minimum payment plan suits you best, I’m going to process your application. I’ll also explain the benefits and drawbacks of the solution so you can make an informed decision.`,
   };
 
   return (
     <div className="bg-white border p-4 rounded-lg shadow-md text-gray-800 mx-auto space-y-4 w-full">
+
+      {/* Question 1 */}
       <p className="text-base leading-relaxed">
-        <strong>Right!</strong> You are making such high payments. Are you compromising with your expenses or are you fine with these payments?
+        How do you find these payments? Are they manageable, or do you sometimes compromise on other expenses?
       </p>
 
       <div className="flex gap-10">
         <label className="flex items-center gap-2">
           <input
             type="radio"
-            name="handlingMethod"
+            name="paymentStatus"
             value="fine"
-            checked={value.handlingMethod === "fine"}
-            onChange={(e) => handleChange("handlingMethod", e.target.value)}
+            checked={value.paymentStatus === "fine"}
+            onChange={(e) => handleChange("paymentStatus", e.target.value)}
           />
-          Fine with the payment
+          Ok with the payment
         </label>
 
         <label className="flex items-center gap-2">
           <input
             type="radio"
-            name="handlingMethod"
+            name="paymentStatus"
             value="struggling"
-            checked={value.handlingMethod === "struggling"}
-            onChange={(e) => handleChange("handlingMethod", e.target.value)}
+            checked={value.paymentStatus === "struggling"}
+            onChange={(e) => handleChange("paymentStatus", e.target.value)}
           />
           Struggling
         </label>
       </div>
 
-      {value.handlingMethod && (
-        <div>
-          {messages[value.handlingMethod]}
-        </div>
+      {value.paymentStatus && (
+        <p className="text-base leading-relaxed">
+          {paymentMessages[value.paymentStatus]}
+        </p>
       )}
 
+      {/* Question 2 */}
       <p className="text-base leading-relaxed">
-        Because as I can see, some part of these repayments is simply going toward the high interest and charges. That’s the only reason your principal amount is coming down but very slowly.
+        As I can see, a portion of these repayments goes toward high interest and charges, which is why your principal amount is reducing very slowly.
         <br />
         <strong>Have you ever noticed that?</strong>
       </p>
 
+      <div className="flex gap-10">
+        <label className="flex items-center gap-2">
+          <input
+            type="radio"
+            name="interestNotice"
+            value="Yes"
+            checked={value.interestNotice === "Yes"}
+            onChange={(e) => handleChange("interestNotice", e.target.value)}
+          />
+          Yes
+        </label>
+
+        <label className="flex items-center gap-2">
+          <input
+            type="radio"
+            name="interestNotice"
+            value="No"
+            checked={value.interestNotice === "No"}
+            onChange={(e) => handleChange("interestNotice", e.target.value)}
+          />
+          No
+        </label>
+      </div>
+
+      {value.interestNotice && (
+        <p className="text-base leading-relaxed">
+          {noticeMessages[value.interestNotice]}
+        </p>
+      )}
+
+      {/* Closing Text */}
       <p className="text-base leading-relaxed">
-        Don’t worry sir — we’re going to drop your high interest and charges completely to <strong>0%</strong>, so whatever amount you pay will directly deduct from your principal amount. This will help you become debt-free in a shorter period of time.
+        Don’t worry — we’re going to reduce your high interest and charges to <strong>0%</strong>, so whatever amount you pay will directly go toward your principal. This will help you become debt-free faster.
       </p>
 
       <p className="text-base leading-relaxed">
-        Also, we will explore the possibility of writing off some part of your debts as well.
+        We will also explore the possibility of writing off a portion of your debts.
       </p>
 
       <p className="text-base leading-relaxed">
-        Alright! So to give you a clear picture of what program you qualify for and what minimum payment plan suits you best, I’m going to process your application. I’ll also explain the benefits and drawbacks of the solution so you can make an informed decision.
-        <br />
-        OR
-        <br />
-        So, talking about these debts — what sort of debts are these? Are these credit cards, loans, or a bit of both?
-        <br />
-        OR
-        <br />
-        Now in order to give you a clear picture what best we can do for you, I'm going to connect this call to one of my senior advisor and he'll/She'll assist you further, So just bare with me on the line.
-        <br />
-        OR
-        <br />
-        Now, in order to see what best we can do for you, I’m going to process the application. We’ll also explain all the benefits and drawbacks of the solution you qualify for, so that you can make an informed decision. So, talking about these debts—what sort of debts are these? Are they credit cards, loans, or a bit of both?
+        To give you a clear picture of the program you qualify for and the minimum payment plan that suits you best, I’ll process your application and explain all the benefits and drawbacks so you can make an informed decision.
       </p>
+
     </div>
   );
 };
