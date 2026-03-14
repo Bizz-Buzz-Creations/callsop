@@ -297,29 +297,20 @@ const FallingBehind = ({ value = {}, onChange }) => {
           <strong>Right?</strong>
         </p>
 
-        <p>
-          Alright! So to give you a clear picture of what program you qualify
-          for and what minimum payment plan suits you best, I’m going to process
-          your application. I’ll also explain the benefits and drawbacks of the
-          solution so you can make an informed decision.
-        </p>
-        <p>
-          So, talking about these debts — what sort of debts are these? Are
-          these credit cards, loans, or a bit of both?
-        </p>
-        <p>
-          Now in order to give you a clear picture what best we can do for you,
-          I'm going to connect this call to one of my senior advisor and
-          he'll/She'll assist you further, So just bare with me on the line.
-          <br />
-          OR
-          <br />
-          Now, in order to see what best we can do for you, I’m going to process
-          the application. We’ll also explain all the benefits and drawbacks of
-          the solution you qualify for, so that you can make an informed
-          decision. So, talking about these debts—what sort of debts are these?
-          Are they credit cards, loans, or a bit of both?
-        </p>
+        {isBehind6Months &&
+        value.breathingPeriod === "false" &&
+        value.chasingCreditors === "false" &&
+        value.affordingPayment === "one" ? (
+          ""
+        ) : (
+          <p>
+            Now, in order to see what best we can do for you, I’m going to
+            process the application. We’ll also explain all the benefits and
+            drawbacks of the solution you qualify for, so that you can make an
+            informed decision. So, talking about these debts—what sort of debts
+            are these? Are they credit cards, loans, or a bit of both?
+          </p>
+        )}
       </div>
     </div>
   );

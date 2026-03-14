@@ -7,7 +7,7 @@ const HighPayment = ({ value = {}, onChange }) => {
 
   const paymentMessages = {
     fine: `That's great! You're managing it well. However, even if you continue paying this way, it will still take a longer time to clear these debts.`,
-    struggling: `Due to interest and charges added on top of your payments, your principal amount is reducing at a much slower rate.`,
+    struggling: `If you are struggling then our basic job is to firstly drop down the montly payment as per your realistic affordability,  so that you don't have to compromise with you montly expenses. `,
   };
 
   const noticeMessages = {
@@ -19,10 +19,10 @@ const HighPayment = ({ value = {}, onChange }) => {
 
   return (
     <div className="bg-white border p-4 rounded-lg shadow-md text-gray-800 mx-auto space-y-4 w-full">
-
       {/* Question 1 */}
       <p className="text-base leading-relaxed">
-        How do you find these payments? Are they manageable, or do you sometimes compromise on other expenses?
+        How do you find these payments? Are they manageable, or do you sometimes
+        compromise on other expenses?
       </p>
 
       <div className="flex gap-10">
@@ -54,10 +54,11 @@ const HighPayment = ({ value = {}, onChange }) => {
           {paymentMessages[value.paymentStatus]}
         </p>
       )}
-
+      <br />
       {/* Question 2 */}
       <p className="text-base leading-relaxed">
-        As I can see, a portion of these repayments goes toward high interest and charges, which is why your principal amount is reducing very slowly.
+        As I can see, a portion of these repayments goes toward high interest
+        and charges, which is why your principal amount is reducing very slowly.
         <br />
         <strong>Have you ever noticed that?</strong>
       </p>
@@ -94,17 +95,11 @@ const HighPayment = ({ value = {}, onChange }) => {
 
       {/* Closing Text */}
       <p className="text-base leading-relaxed">
-        Don’t worry — we’re going to reduce your high interest and charges to <strong>0%</strong>, so whatever amount you pay will directly go toward your principal. This will help you become debt-free faster.
+        To give you a clear picture of the program you qualify for and the
+        minimum payment plan that suits you best, I’ll process your application
+        and explain all the benefits and drawbacks so you can make an informed
+        decision.
       </p>
-
-      <p className="text-base leading-relaxed">
-        We will also explore the possibility of writing off a portion of your debts.
-      </p>
-
-      <p className="text-base leading-relaxed">
-        To give you a clear picture of the program you qualify for and the minimum payment plan that suits you best, I’ll process your application and explain all the benefits and drawbacks so you can make an informed decision.
-      </p>
-
     </div>
   );
 };
