@@ -40,8 +40,8 @@
     "answer": "We got your contact details through Housing Resolution Forum. It is an online web portal for the tenants who are residing in the UK on the properties provided by Council or Housing Association.\nIn case you have recently raised any complaints regarding the dissatisfaction in the living space against your landlord and it's been unaddressed by them, we follow up with those people who are in need of help to improve their standard of living.\nAnd also you don't really have to worry about anything because we are going to provide you legal protection as well because the major question that you might be coming in your mind could be: is it going to affect my tenancy agreement."
   },
   {
-    "question": "How you gonna help me?",
-    "answer": "Since, there are several options that are currently running in the financial market. \nSo, to tell you which option you will qualify and haw thử option is going to help you, we nud certain information from your side. Based on those inosmation I will check for the options will tell you all the benitits & drawbacks of the solution you can qualify for. So that you can make an infosmed decision. And the most important thing is — there is no fees involved."
+    "question": "How are you going to help me?",
+    "answer": "What we do is review your current financial situation and see if you may qualify for a regulated solution such as an IVA (Individual Voluntary Arrangement) or a DMP (Debt Management Plan).    Depending on your circumstances:  Interest and charges on your debts may be frozen.  You make one affordable monthly payment.  In some cases, a portion of the debt may be written off at the end of the arrangement.  However, I cannot confirm anything yet.  First, I would need to review your situation to see which option you may qualify for."
   },
   {
     "question": "How you guys make money?",
@@ -49,7 +49,7 @@
   },
   {
     "question": "I don't know you?",
-    "answer": "Neither I don't know you. It's not about knowing each other, its all about the solutions running in financial market and these information that I have got, I can assure you none of the person whom you know."
+    "answer": "That’s absolutely fine. We don’t need to know each other personally. My role is simply to provide information about the debt solutions currently available in the UK. Based on the details you share, I can check whether you may qualify for a solution such as an IVA or a Debt Management Plan."
   },
   {
     "question": "I didn't asked you to call me?",
@@ -57,15 +57,15 @@
   },
   {
     "question": "I am busy right now (initially).",
-    "answer": "Yeah thats fine, I can arrange a callback. But I don't wanna waste your time on this which is something irrelevant. So let me just tell you the purpose of my call."
+    "answer": "No problem at all. I can arrange a quick callback at a time that suits you better. Before I let you go, let me quickly explain the purpose of my call so you know why we reached out."
   },
   {
     "question": "Never heard abord you guys, neitter the Debt solution, nor CRF?",
     "answer": "Well, no issues! I will tell you what is CRF and debt solution. Well CRF stands for credit Resolution Forum which is a government department who holds the \"information of the people who had some debt outstandings. OK? and they just passed your information to us, to let you know about some of the debt solutions which will help you to become a debt free person in much shorter span of time as if compared to the time taken by you, and if you are really struggling to pay your full payment back then, we will try to write off your major portion of your debts Alright?"
   },
   {
-    "question": "Who gave u the authority to call me about my finances?",
-    "answer": "Well, We have a Authority to help People with debts and finances in England, Wales, and Scotland. This authority is given once FCA regulated authorised company, so we regulated authorised companies are FCA we work under guidelines set up by the F.C. A Department and G.D.P.R."
+    "question": "Who gave you the authority to call me about my finances?",
+    "answer": "We work with FCA-regulated debt solution providers across the UK, including England, Wales, Scotland, and Northern Ireland. All the information we provide follows guidelines set by the Financial Conduct Authority (FCA) and GDPR regulations."
   },
   {
     "question": "I have Never shared any of my details regarding my finances?",
@@ -85,7 +85,7 @@
   },
   {
     "question": "I don't want to share any of my details, you could be a scammer?",
-    "answer": "Well, I am not going to ask you any of your bank details or soft codes of the card or any money so you don't have to worry about getting scammed. Our calls are recorded for training and monitoring purposes. So, we are here to let you know the best solution based on guidelines set up by the F.C.A department."
+    "answer": "I completely understand your concern. Just to reassure you, I’m not going to ask for any bank details, card numbers, or sort codes. This is simply an information call to see if you may qualify for any regulated debt solutions. Also, all our calls are recorded for training and monitoring purposes, and we operate under FCA guidelines."
   },
   {
     "question": "How, you will gonna help me?",
@@ -105,7 +105,7 @@
   },
   {
     "question": "I Know all the solutions, Why don't I go with the CAB rather than you guys?",
-    "answer": "So you have the clear picture about all the options as you have experience this before and if you deal with the CAB or StepChange they are going to take a lot of time, couple of months to advise you because of their traffic. Basically, CAB will help you for budgeting and breathing space not for any options, and if you deal with them they will put your name in a government register then you won’t be entitled to get any benefits, and it will affect your tenancy agreement and credit score for a longer time."
+    "answer": "That’s absolutely your choice, and they are good organizations that provide free advice. What we do is help review your situation and explain the options available to you, including IVAs and Debt Management Plans, and guide you through the process if you decide to proceed.  Some people choose to speak with us because we can assess their situation straight away and help them understand what options may be suitable."
   },
   {
     "question": "None of your business?",
@@ -137,7 +137,7 @@
   },
   {
     "question": "Manage by himself",
-    "answer": "JUST WANT TO LET YOU KNOW IF YOU PAY ALL YOUR DEBTS BY YOURSELF THEN AT THE END, YOU WILL BE ACTUALLY PAYING MORE THAN YOU OWE.. BECAUSE OF THE INTEREST AND CHARGES THAT ARE IMPOSED ON TOP OF THE PAYMENTS. HERE INTO THIS SOLUTION ALL YOUR HIGH INTEREST AND CHARGES WILL BE FROZEN DOWN TO 0% AND WE ARE ALSO LOOKING TO WRITE OFF MAJORITY PORTION OF YOUR DEBTS WHICH IS EVENTUALLY GONNA HELP U SAVE SOME MONEY AND MANAGE YOUR EXPENSES QUITE WELL IN THESE TIMES OF INFLATION. ok so to check which solution best suited for your self I just need to confirm how is the total outstanding debt you have"
+    "answer": "That’s good to hear that you’re managing your payments. The only reason I’m calling is to let you know that, in some cases, people who continue paying high interest and charges may end up paying much more than the original amount they borrowed. With certain regulated solutions, interest and charges may be frozen, and payments can be consolidated into one affordable monthly payment.To check whether any option may be suitable for you, I just need to ask a couple of quick questions.  First of all, approximately how much total debt do you currently have outstanding?"
   },
   {
     "question": "Minimum Payment (if he is making 200 or less)",
