@@ -32,24 +32,20 @@
     "answer": "I know that the services that we are offering are not your current priority; however, a lot of our clients felt relief just by knowing that there are certain solutions available in the financial market that can help them get rid of these debts in an easier way. Also, since I have already told you that you are not going to decide anything over the phone with me, nor are you going to take any program today or tomorrow, this call will just give you an update about all the debt solutions that are currently running in the financial market—what solutions you can opt for, and what their benefits and drawbacks are, so that later on you can make an informed decision..."
   },
   {
-    "question": "Who is housing disrepair team?",
-    "answer": "A Housing disrepair team is a group of people who works for an organisation that works for the tenants and they have certain damages on the rental property they are living in.\nWe make sure that anyone living in the UK is happy with the residential accommodation they have been provided by the council or housing authorities.\nIn case your complaint is not getting addressed then we will try to contact your landlord on your behalf because they can ignore you but they can't ignore us as we got a team of 10 different solicitors.\nIn case they have any property damage related issues unaddressed by their landlords as per the tenancy act {section 11} 1985 tenants you can also file a complaint against landlord, to resolve the problem quicker."
-  },
-  {
-    "question": "From where did you got my contact information?",
-    "answer": "We got your contact details through Housing Resolution Forum. It is an online web portal for the tenants who are residing in the UK on the properties provided by Council or Housing Association.\nIn case you have recently raised any complaints regarding the dissatisfaction in the living space against your landlord and it's been unaddressed by them, we follow up with those people who are in need of help to improve their standard of living.\nAnd also you don't really have to worry about anything because we are going to provide you legal protection as well because the major question that you might be coming in your mind could be: is it going to affect my tenancy agreement."
-  },
-  {
     "question": "How are you going to help me?",
     "answer": "What we do is review your current financial situation and see if you may qualify for a regulated solution such as an IVA (Individual Voluntary Arrangement) or a DMP (Debt Management Plan).    Depending on your circumstances:  Interest and charges on your debts may be frozen.  You make one affordable monthly payment.  In some cases, a portion of the debt may be written off at the end of the arrangement.  However, I cannot confirm anything yet.  First, I would need to review your situation to see which option you may qualify for."
   },
   {
     "question": "How you guys make money?",
-    "answer": "It's the first time, I had got someone who has asked a financial advisor \"How they make money.\" But since you asked me, let me tell you,how i make - i make money through investments sometimes via referral fees where the cx, nuds any sort of insurance and switching off the gas & electric. So we get paid from those companies along with that we also get paid from license practitioners in case any reffered case had been approved."
+    "answer": "That's a really good question, and I'm glad you asked. We don't charge you for this initial assessment or for speaking with us today. If, after reviewing your circumstances, you're eligible for a debt solution and you choose to go ahead, we may receive a fee from the debt solution provider for introducing you. That doesn't increase the amount you owe your creditors, and our job is simply to see whether there's a suitable option based on your circumstances."
   },
   {
     "question": "I don't know you?",
-    "answer": "That’s absolutely fine. We don’t need to know each other personally. My role is simply to provide information about the debt solutions currently available in the UK. Based on the details you share, I can check whether you may qualify for a solution such as an IVA or a Debt Management Plan."
+    "answer": "I completely understand. We don't know each other, and you should always be cautious. But let me ask you this—if someone owed over £5,000 across multiple creditors and was paying £200 or £300 every month, and there was a possibility that another debt solution might be more suitable for their circumstances, do you think it would be worth at least hearing about it before deciding it isn't for them?"
+  },
+  {
+    "question": "How much do i owe?",
+    "answer": "well, we operate in compliance with GDPR and FCA regulations, so we have limited access to your credit profile. That's why I'm calling today—to confirm a few details directly with you so I can understand your current circumstances and recommend the most suitable solution."
   },
   {
     "question": "I didn't asked you to call me?",
@@ -58,10 +54,6 @@
   {
     "question": "I am busy right now (initially).",
     "answer": "No problem at all. I can arrange a quick callback at a time that suits you better. Before I let you go, let me quickly explain the purpose of my call so you know why we reached out."
-  },
-  {
-    "question": "Never heard abord you guys, neitter the Debt solution, nor CRF?",
-    "answer": "Well, no issues! I will tell you what is CRF and debt solution. Well CRF stands for credit Resolution Forum which is a government department who holds the \"information of the people who had some debt outstandings. OK? and they just passed your information to us, to let you know about some of the debt solutions which will help you to become a debt free person in much shorter span of time as if compared to the time taken by you, and if you are really struggling to pay your full payment back then, we will try to write off your major portion of your debts Alright?"
   },
   {
     "question": "Who gave you the authority to call me about my finances?",
@@ -77,7 +69,7 @@
   },
   {
     "question": "Why are you calling me from a mobile?",
-    "answer": "Well, As per the new FCA guidelines. All the FCA authorised companies have to use mobile numbers to call customers because from landline numbers so many scams had been recorded and because of this, investigation is going on every landlined number, and this mobile number is registered to our individual ID so if any report is going to be submitted against this number then the FCA team will catch us easily."
+    "answer": "This is actually one of our company outbound numbers. For outbound enquiries, we use dedicated business mobiles rather than our main office line. It helps us manage callbacks more efficiently and means if you miss my call, you can reach me directly instead of going through a switchboard."
   },
   {
     "question": "I don't need any of your help?",
