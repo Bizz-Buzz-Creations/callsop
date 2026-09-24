@@ -3,8 +3,8 @@ import Income from "../components/Income";
 import Expense from "../components/Expense";
 import Summary from "../components/Summary";
 import Comparison from "../components/Comparison";
-import UserForm from "../components/userForm";
-import CalculatorPdf from "../components/calculatorPdf";
+import UserForm from "../components/UserForm";
+import CalculatorPdf from "../components/CalculatorPdf";
 
 const Calculator = () => {
   const [totalIncome, setTotalIncome] = useState(0);
