@@ -1,9 +1,12 @@
+[build]
+command = "npm run build"
+publish = "dist"
+
 [[edge_functions]]
 path = "/*"
 function = "ip-filter"
 
 [[redirects]]
 from = "/*"
-to = "https://callsop.bbcfinsrv.com/:splat"
-status = 301
-force = true
+to = "/index.html"
+status = 200
