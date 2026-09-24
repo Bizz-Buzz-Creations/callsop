@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import MonthlyIncome from "./monthlyIncome";
+import MonthlyIncome from "./MonthlyIncome";
 import MonthlyOutgoing from "./MonthlyOutgoing";
 import html2pdf from "html2pdf.js";
 
