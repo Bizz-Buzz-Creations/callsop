@@ -36,31 +36,31 @@ export default async (request, context) => {
   //   return new Response("Access Denied", { status: 403 });
   // }
 
-  if (!clientIP || !isIpAllowed(clientIP, allowedIPs)) {
-    // Serve HTML only for root paths, not for assets
-    if (request.headers.get("accept")?.includes("text/html")) {
-      let html = "<h1>Access Denied</h1>";
-      try {
-        const res = await fetch(
-          "https://callsop.netlify.app/access-denied.html"
-        );
-        html = await res.text();
-      } catch (err) {
-        console.error("Failed to load custom Access Denied page", err);
-      }
+  // if (!clientIP || !isIpAllowed(clientIP, allowedIPs)) {
+  //   // Serve HTML only for root paths, not for assets
+  //   if (request.headers.get("accept")?.includes("text/html")) {
+  //     let html = "<h1>Access Denied</h1>";
+  //     try {
+  //       const res = await fetch(
+  //         "https://callsop.netlify.app/access-denied.html"
+  //       );
+  //       html = await res.text();
+  //     } catch (err) {
+  //       console.error("Failed to load custom Access Denied page", err);
+  //     }
 
-      return new Response(html, {
-        status: 403,
-        headers: {
-          "Content-Type": "text/html",
-          "Cache-Control": "no-store",
-        },
-      });
-    }
+  //     return new Response(html, {
+  //       status: 403,
+  //       headers: {
+  //         "Content-Type": "text/html",
+  //         "Cache-Control": "no-store",
+  //       },
+  //     });
+  //   }
 
-    // For non-HTML requests, return a plain 403
-    return new Response("Access Denied", { status: 403 });
-  }
+  //   // For non-HTML requests, return a plain 403
+  //   return new Response("Access Denied", { status: 403 });
+  // }
 
   return context.next();
 };
