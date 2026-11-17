@@ -62,4 +62,11 @@ export const verifyToken = (token) => {
   }
 };
 
+// Constant-time string comparison (for shared secrets).
+export const safeEqual = (a, b) => {
+  const x = Buffer.from(String(a));
+  const y = Buffer.from(String(b));
+  return x.length === y.length && timingSafeEqual(x, y);
+};
+
 export const newSessionId = () => randomBytes(16).toString("hex");

@@ -123,3 +123,16 @@ export const fetchAttempts = async () => (await adminCall("/admin/attempts")).at
 // Deleting an attempt also frees that employee ID's attempt allowance.
 export const deleteAttempt = (attemptId) =>
   adminCall(`/admin/attempts/${attemptId}`, { method: "DELETE" });
+
+// ---- IP access control ---------------------------------------------------------------
+
+export const fetchAccess = () => adminCall("/admin/access");
+
+export const setAccessEnabled = (enabled) =>
+  adminCall("/admin/access", { method: "PUT", body: { enabled } });
+
+// hours = null means the rule never expires.
+export const addAccessRule = (value, label, hours) =>
+  adminCall("/admin/access/rules", { method: "POST", body: { value, label, hours } });
+
+export const deleteAccessRule = (id) => adminCall(`/admin/access/rules/${id}`, { method: "DELETE" });

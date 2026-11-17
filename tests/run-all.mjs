@@ -47,8 +47,31 @@ const waitFor = async (url, what) => {
   throw new Error(`${what} did not start (${url})`);
 };
 
+// The throwaway database sometimes stops answering for a while after a heavy suite.
+// Wait for it (and say how long) instead of letting the next suite time out.
+const waitForMongo = async (uri, label) => {
+  const { MongoClient } = require("mongodb");
+  const started = Date.now();
+  for (let attempt = 0; attempt < 45; attempt++) {
+    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 2000 });
+    try {
+      await client.connect();
+      await client.db("admin").command({ ping: 1 });
+      const seconds = (Date.now() - started) / 1000;
+      if (seconds > 3) console.log(`(the database needed ${seconds.toFixed(1)}s to answer before: ${label})`);
+      return;
+    } catch {
+      // not answering yet
+    } finally {
+      await client.close().catch(() => {});
+    }
+  }
+  throw new Error(`the test database stopped answering before: ${label}`);
+};
+
 const failures = [];
-const run = (label, args, env) => {
+const run = async (label, args, env) => {
+  await waitForMongo(env.TEST_MONGO_URI, label);
   console.log(`\n################ ${label} ################`);
   const res = spawnSync(process.execPath, args, { cwd: ROOT, env, stdio: "inherit" });
   if (res.status !== 0) failures.push(label);
@@ -80,7 +103,8 @@ try {
   };
 
   // 2. Tests that need no browser
-  run("API (netlify/api against MongoDB)", ["tests/api.test.mjs"], env);
+  await run("API (netlify/api against MongoDB)", ["tests/api.test.mjs"], env);
+  await run("IP access control (API + edge function)", ["tests/access.test.mjs"], env);
 
   // 3. Build the site into a temp folder (your dist/ is never touched)
   console.log("\nBuilding the site for the browser tests...");
@@ -95,9 +119,10 @@ try {
   await waitFor(`http://localhost:${WEB_PORT}/api/health`, "the website");
 
   // 5. Browser suites
-  run("Whole app (SOP, report, dialog, calculator)", ["tests/app.e2e.cjs"], env);
-  run("MCQ test + admin panel", ["tests/mcq.e2e.cjs"], env);
-  run("MCQ edge cases", ["tests/mcq-extra.e2e.cjs"], env);
+  await run("Whole app (SOP, report, dialog, calculator)", ["tests/app.e2e.cjs"], env);
+  await run("MCQ test + admin panel", ["tests/mcq.e2e.cjs"], env);
+  await run("MCQ edge cases", ["tests/mcq-extra.e2e.cjs"], env);
+  await run("Admin: IP access tab", ["tests/access.e2e.cjs"], env);
 } catch (err) {
   console.error(`\n${err.message}`);
   failures.push("setup");
