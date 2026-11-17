@@ -26,3 +26,16 @@ export const parseList = (entries) => entries.map(parseRule).filter(Boolean);
 export const alwaysAllowedEntries = (extraCsv) => [...BUILT_IN_ALLOWED, ...splitList(extraCsv)];
 
 export const alwaysAllowedRules = (extraCsv) => parseList(alwaysAllowedEntries(extraCsv));
+
+// Allowed by default when the IP filter is switched on. Unlike the always-allowed
+// list above, these live in the database: they are saved there the first time the
+// list is used, shown in the admin panel, and an admin can delete them (they do
+// not come back). They depend on the database being reachable.
+export const DEFAULT_RULES = [
+  { value: "103.86.180.158", label: "Default" },
+  { value: "106.215.115.85", label: "Default" },
+  { value: "106.219.172.24", label: "Default" },
+  { value: "122.172.83.107", label: "Default" },
+  { value: "14.96.246.106", label: "Default" },
+  { value: "192.168.0.0/16", label: "Default (private network range)" },
+];

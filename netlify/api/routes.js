@@ -9,7 +9,7 @@
 //  - Admin routes need an admin token and re-check that the admin still exists.
 import { ObjectId } from "mongodb";
 import { getDb } from "./db.js";
-import { alwaysAllowedEntries, alwaysAllowedRules } from "./access.js";
+import { DEFAULT_RULES, alwaysAllowedEntries, alwaysAllowedRules } from "./access.js";
 import { ConfigError, HttpError, json, readJson } from "./http.js";
 import { addressToString, isTooBroad, matchesAny, parseAddress, parseRule, ruleToString } from "./ip.js";
 import {
@@ -406,7 +406,24 @@ route("DELETE", "/admin/attempts/([^/]+)", "admin", async ({ db, params }) => {
 const MAX_IP_RULES = 500;
 const isActiveRule = (rule, now = new Date()) => !rule.expiresAt || rule.expiresAt > now;
 
+// Saves the default rules ONCE (a flag remembers it, so rules an admin deletes stay deleted).
+const seedDefaultRules = async (db) => {
+  const settings = db.collection("config");
+  if ((await settings.findOne({ _id: "access" }, { projection: { defaultsSeeded: 1 } }))?.defaultsSeeded) return;
+  const rules = db.collection("ipRules");
+  for (const { value, label } of DEFAULT_RULES) {
+    const canonical = ruleToString(parseRule(value));
+    try {
+      await rules.insertOne({ value: canonical, label, createdAt: new Date(), createdBy: "default", expiresAt: null });
+    } catch (err) {
+      if (err?.code !== 11000) throw err; // already there (or a parallel request just added it)
+    }
+  }
+  await settings.updateOne({ _id: "access" }, { $set: { defaultsSeeded: true } }, { upsert: true });
+};
+
 const loadAccess = async (db) => {
+  await seedDefaultRules(db);
   const [setting, rules] = await Promise.all([
     db.collection("config").findOne({ _id: "access" }),
     db.collection("ipRules").find({}).sort({ createdAt: 1 }).toArray(),

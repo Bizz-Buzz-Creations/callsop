@@ -28,7 +28,7 @@ const { ok, group, finish } = createRunner();
     await page.getByText("IP filter:").waitFor();
     ok("the filter starts OFF", (await page.getByText("OFF", { exact: true }).count()) === 1 && (await page.getByRole("button", { name: "Turn on" }).count()) === 1);
     ok("warns that the edge secret is missing (filter not active yet)", (await page.getByText("Not active yet").count()) === 1);
-    ok("no IPs added yet", (await page.getByText("No IPs added yet.").count()) === 1);
+    ok("the 6 default IPs are already in the list (added by default)", (await page.locator("tbody tr").count()) === 6 && (await row("14.96.246.106").count()) === 1 && (await row("192.168.0.0/16").count()) === 1 && (await page.locator("tbody tr", { hasText: "by default" }).count()) === 6);
     ok("shows my current IP, not in the list", (await page.getByTestId("my-ip").innerText()).length > 0 && (await page.getByText("not in the list").count()) === 1);
     const builtIn = await page.locator("span.font-mono.text-xs").allInnerTexts();
     ok("lists the 9 built-in always-allowed IPs", builtIn.length === 9 && builtIn.includes("103.217.245.94") && builtIn.includes("111.235.67.0/24") && builtIn.includes("171.78.155.25"), JSON.stringify(builtIn));

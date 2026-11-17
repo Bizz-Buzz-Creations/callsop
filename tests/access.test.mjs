@@ -69,7 +69,9 @@ is(await call("DELETE", "/admin/access/rules/000000000000000000000000", { token:
 
 section("API: defaults");
 let r = await call("GET", "/admin/access", { token: T, client: "10.0.0.1" });
-ok("filter starts OFF, no rules", r.data.enabled === false && r.data.rules.length === 0);
+ok("filter starts OFF", r.data.enabled === false);
+ok("the 6 default IPs were saved automatically (added by 'default')", r.data.rules.length === 6 && r.data.rules.every((x) => x.createdBy === "default") && ["103.86.180.158", "106.215.115.85", "106.219.172.24", "122.172.83.107", "14.96.246.106", "192.168.0.0/16"].every((v) => r.data.rules.some((x) => x.value === v)), JSON.stringify(r.data.rules.map((x) => x.value)));
+ok("loading again does not duplicate them", (await call("GET", "/admin/access", { token: T })).data.rules.length === 6 && (await db.collection("ipRules").countDocuments()) === 6);
 ok("shows the caller's IP and that it is not allowed", r.data.myIp === "10.0.0.1" && r.data.myIpAllowed === false);
 ok("lists the 9 built-in always-allowed IPs (incl. the labeled office IPs)", r.data.alwaysAllowed.length === 9 && r.data.alwaysAllowed.includes("111.235.67.0/24") && r.data.alwaysAllowed.includes("171.78.155.25") && r.data.alwaysAllowed.includes("14.102.43.26") && r.data.alwaysAllowed.includes("122.179.140.142"));
 ok("reports the edge secret as not configured", r.data.edgeConfigured === false);
@@ -88,7 +90,7 @@ is(await add({ value: "1.2.3.4", label: { $ne: 1 } }), 400, "object as label ref
 is(await add({ value: "1.2.3.4", hours: 0 }), 400, "0 hours refused");
 is(await add({ value: "1.2.3.4", hours: 1.5 }), 400, "fractional hours refused");
 is(await add({ value: "1.2.3.4", hours: 24 * 366 }), 400, "more than a year refused");
-ok("none of the refused requests saved anything", (await db.collection("ipRules").countDocuments()) === 0);
+ok("none of the refused requests saved anything (only the 6 defaults exist)", (await db.collection("ipRules").countDocuments()) === 6);
 is(await add({ value: "203.0.113.7", label: "Ishika home" }), 201, "valid IP added");
 is(await add({ value: "203.0.113.7/32" }), 409, "same IP written as /32 is a duplicate");
 is(await add({ value: "198.51.100.77/24", label: "Branch office" }), 201, "range with host bits added");
@@ -99,6 +101,12 @@ ok("stored in canonical form", !!byValue["203.0.113.7"] && !!byValue["198.51.100
 ok("label, creator and expiry are kept", byValue["203.0.113.7"].label === "Ishika home" && byValue["203.0.113.7"].createdBy === "boss" && byValue["203.0.113.7"].expiresAt === null && Math.abs(new Date(byValue["2001:db8:0:0:0:0:0:1"].expiresAt) - (Date.now() + 86400000)) < 60000);
 ok("rules are not flagged expired yet", r.data.rules.every((x) => x.expired === false));
 const idOf = (value) => byValue[value].id;
+
+section("API: default rules can be deleted and stay deleted");
+const defaultId = (await call("GET", "/admin/access", { token: T })).data.rules.find((x) => x.value === "14.96.246.106").id;
+is(await call("DELETE", `/admin/access/rules/${defaultId}`, { token: T }), 200, "a default rule can be deleted");
+ok("it does not come back on the next load", !(await call("GET", "/admin/access", { token: T })).data.rules.some((x) => x.value === "14.96.246.106"));
+ok("the other 5 defaults remain", (await db.collection("ipRules").countDocuments()) === 5 + 3);
 
 section("API: turning the filter on cannot lock the admin out");
 r = await call("PUT", "/admin/access", { token: T, body: { enabled: true }, client: "10.0.0.1" });

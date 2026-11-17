@@ -1,6 +1,6 @@
 // `npm test`: starts a throwaway MongoDB, the API and a build of the site, runs
 // every suite, then shuts everything down. See tests/README.md.
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { createRequire } from "node:module";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -69,12 +69,34 @@ const waitForMongo = async (uri, label) => {
   throw new Error(`the test database stopped answering before: ${label}`);
 };
 
+// IMPORTANT: never use spawnSync here. The throwaway MongoDB logs to a pipe that this
+// process must keep reading; if this process is frozen waiting for a child, the pipe
+// fills up, MongoDB blocks on writing its log, and every suite hangs.
+const exec = (args, { env, stdio = "inherit", timeoutMs } = {}) =>
+  new Promise((resolve) => {
+    const child = spawn(process.execPath, args, { cwd: ROOT, env, stdio });
+    let timedOut = false;
+    const timer = timeoutMs ? setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, timeoutMs) : null;
+    child.on("exit", (status) => {
+      clearTimeout(timer);
+      resolve({ status, timedOut });
+    });
+  });
+
 const failures = [];
+const SUITE_TIMEOUT_MS = 8 * 60_000;
 const run = async (label, args, env) => {
-  await waitForMongo(env.TEST_MONGO_URI, label);
-  console.log(`\n################ ${label} ################`);
-  const res = spawnSync(process.execPath, args, { cwd: ROOT, env, stdio: "inherit" });
-  if (res.status !== 0) failures.push(label);
+  // A suite that gets stuck (the throwaway database occasionally wedges) is stopped
+  // after a time limit and retried once, instead of hanging the whole run.
+  for (const attempt of [1, 2]) {
+    await waitForMongo(env.TEST_MONGO_URI, label);
+    console.log(`\n################ ${label}${attempt > 1 ? " (retry)" : ""} ################`);
+    const res = await exec(args, { env, timeoutMs: SUITE_TIMEOUT_MS });
+    if (res.status === 0) return;
+    if (!res.timedOut || attempt === 2) break; // a real failure (or the retry also hung)
+    console.log(`\n(${label} got stuck for ${SUITE_TIMEOUT_MS / 60000} minutes; retrying once)`);
+  }
+  failures.push(label);
 };
 
 try {
@@ -109,7 +131,7 @@ try {
   // 3. Build the site into a temp folder (your dist/ is never touched)
   console.log("\nBuilding the site for the browser tests...");
   const dist = join(tmp, "dist");
-  const build = spawnSync(process.execPath, [VITE, "build", "--outDir", dist, "--emptyOutDir"], { cwd: ROOT, env, stdio: "ignore" });
+  const build = await exec([VITE, "build", "--outDir", dist, "--emptyOutDir"], { env, stdio: "ignore" });
   if (build.status !== 0) throw new Error("vite build failed (run `npm run build` to see why)");
 
   // 4. Servers

@@ -17,6 +17,7 @@ const ensureIndexes = async (db) => {
     ),
     db.collection("attempts").createIndex({ startedAt: -1 }),
     db.collection("violations").createIndex({ attemptId: 1 }),
+    db.collection("ipRules").createIndex({ value: 1 }, { unique: true }),
     // Failed-login records expire by themselves after 15 minutes.
     db.collection("loginFailures").createIndex({ at: 1 }, { expireAfterSeconds: 900 }),
   ]);
