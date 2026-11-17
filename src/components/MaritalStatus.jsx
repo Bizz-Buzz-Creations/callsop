@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-
 const MaritalStatus = ({ value = {}, onChange }) => {
   // Use value as the source of truth
   const { status = "", haveKids = "", kidsCount = "", kidsAges = "" } = value;

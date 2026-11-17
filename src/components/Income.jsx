@@ -24,17 +24,19 @@ const Income = ({ setTotalIncome, setIncomeData }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const keys = name.split('.');
+    const [section, key] = name.split('.');
 
-    setIncomeDataLocal((prevData) => {
-      const newData = { ...prevData };
-      if (keys.length === 2) {
-        newData[keys[0]][keys[1]] = Number(value);
-      }
-      setIncomeData(newData);
-      return newData;
-    });
+    // Pure, immutable update: no mutation of prevData and no side effects here.
+    setIncomeDataLocal((prevData) => ({
+      ...prevData,
+      [section]: { ...prevData[section], [key]: Number(value) },
+    }));
   };
+
+  // Keep the parent in sync (also hands it the initial data on mount).
+  useEffect(() => {
+    setIncomeData(incomeData);
+  }, [incomeData, setIncomeData]);
 
   const totalIncome = Object.values(incomeData).reduce((acc, category) => {
     return acc + Object.values(category).reduce((catAcc, val) => catAcc + val, 0);

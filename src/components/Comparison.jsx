@@ -5,9 +5,9 @@ const Comparison = ({ incomeData, expensesData, totalIncome, totalExpenses }) =>
   const filterNonZeroEntries = (data) => {
     return Object.fromEntries(
       Object.entries(data).map(([key, value]) => { 
-        const filteredValues = Object.entries(value).filter(([_, val]) => val > 0);
+        const filteredValues = Object.entries(value).filter(([, val]) => val > 0);
         return [key, Object.fromEntries(filteredValues)];
-      }).filter(([_, value]) => Object.keys(value).length > 0) // Filter out empty sections
+      }).filter(([, value]) => Object.keys(value).length > 0) // Filter out empty sections
     );
   };
 

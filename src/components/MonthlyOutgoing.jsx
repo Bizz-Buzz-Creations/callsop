@@ -70,7 +70,7 @@ export default function MonthlyOutgoing({ expenseData, setTotalExpense }) {
 
   useEffect(() => {
     setTotalExpense(totalOutgoings);
-  }, [totalOutgoings]);
+  }, [totalOutgoings, setTotalExpense]);
 
   return (
     <div className="mb-5">

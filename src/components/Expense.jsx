@@ -97,17 +97,19 @@ const Expense = ({ setTotalExpenses, setExpensesData }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const keys = name.split(".");
+    const [section, key] = name.split(".");
 
-    setExpensesDataLocal((prevData) => {
-      const newData = { ...prevData }; // Correctly define newData here
-      if (keys.length === 2) {
-        newData[keys[0]][keys[1]] = Number(value);
-      }
-      setExpensesData(newData); // Update parent state with newData
-      return newData;
-    });
+    // Pure, immutable update: no mutation of prevData and no side effects here.
+    setExpensesDataLocal((prevData) => ({
+      ...prevData,
+      [section]: { ...prevData[section], [key]: Number(value) },
+    }));
   };
+
+  // Keep the parent in sync (also hands it the initial data on mount).
+  useEffect(() => {
+    setExpensesData(expensesData);
+  }, [expensesData, setExpensesData]);
 
   const totalExpenses = Object.values(expensesData).reduce((acc, category) => {
     return (

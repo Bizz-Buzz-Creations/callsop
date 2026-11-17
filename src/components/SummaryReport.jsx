@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generateReportFromLocalStorage } from "../utils/reportFormatter";
+import { generateReport } from "../utils/reportFormatter";
 import { downloadReport } from "../utils/downloadReport";
 import {
   FileText,
@@ -9,12 +9,12 @@ import {
 } from "lucide-react"; // Added ClipboardSignature for combined action
 import { Tooltip } from "react-tooltip";
 
-const SummaryReport = () => {
+const SummaryReport = ({ data }) => {
   const [report, setReport] = useState("");
   const [copied, setCopied] = useState(false);
 
   const handleGenerateReport = () => {
-    const formatted = generateReportFromLocalStorage();
+    const formatted = generateReport(data);
     setReport(formatted);
     setCopied(false);
   };

@@ -4,13 +4,18 @@ import HighPayment from "./HighPayment";
 import LowPayment from "./LowPayment";
 import TokenPayment from "./TokenPayement";
 
+// Contiguous bands, so decimals (e.g. 10.5, 150.5) can't fall between tiers.
+// A blank field means "not answered yet" and gets no badge; only an
+// explicit 0 counts as Falling Behind.
 const getBadge = (payment) => {
-  if (payment === 0) return "Falling Behind";
-  if (payment >= 1 && payment <= 10) return "Token Payment";
-  if (payment >= 11 && payment <= 150) return "Low Payment";
-  if (payment >= 151 && payment <= 300) return "Normal Payment";
-  if (payment >= 301) return "High Payment";
-  return "";
+  if (String(payment ?? "").trim() === "") return "";
+  const amount = Number(payment);
+  if (Number.isNaN(amount) || amount < 0) return "";
+  if (amount === 0) return "Falling Behind";
+  if (amount <= 10) return "Token Payment";
+  if (amount <= 150) return "Low Payment";
+  if (amount <= 300) return "Normal Payment";
+  return "High Payment";
 };
 
 const getBadgeClass = (badge) => {
@@ -31,8 +36,8 @@ const getBadgeClass = (badge) => {
 };
 
 const DebtConfirmation = ({ value = {}, onChange }) => {
-  const { debt = "", payment = "0" } = value;
-  const badge = getBadge(Number(payment));
+  const { debt = "", payment = "" } = value;
+  const badge = getBadge(payment);
 
   // Handler for input changes
   const handleInput = (field, val) => {
@@ -40,7 +45,7 @@ const DebtConfirmation = ({ value = {}, onChange }) => {
 
     // If payment is updated, calculate and store the badge
     if (field === "payment") {
-      updatedValue.badge = getBadge(Number(val));
+      updatedValue.badge = getBadge(val);
     }
 
     onChange(updatedValue);

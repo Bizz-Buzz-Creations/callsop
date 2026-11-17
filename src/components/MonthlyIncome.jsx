@@ -39,7 +39,7 @@ export default function MonthlyIncome({ incomeData, setTotalIncome }) {
 
   useEffect(() => {
     setTotalIncome(totalIncome);
-  }, [totalIncome]);
+  }, [totalIncome, setTotalIncome]);
 
   return (
     <div className="mb-5">

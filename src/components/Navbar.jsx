@@ -19,6 +19,10 @@ const Navbar = () => {
       <Link to="/calculator" className={linkClass('/calculator')}>
         Income & Expenditure Calculator
       </Link>
+
+      <Link to="/test" className={linkClass('/test')}>
+        MCQ Test
+      </Link>
     </nav>
   );
 };

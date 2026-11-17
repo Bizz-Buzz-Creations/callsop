@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import './App.css';
 
@@ -7,6 +7,10 @@ import DialogBox from './components/DialogBox';
 import { MessageSquareText } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Calculator from './pages/Calculator';
+
+// Lazy so the Firebase SDK is only downloaded when the test is opened.
+const McqTest = lazy(() => import('./pages/McqTest'));
+const McqAdmin = lazy(() => import('./pages/McqAdmin'));
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,6 +41,18 @@ function App() {
           <Calculator />
         </Route> 
        
+
+        <Route path="/test">
+          <Suspense fallback={<div className="text-center py-10">Loading…</div>}>
+            <McqTest />
+          </Suspense>
+        </Route>
+
+        <Route path="/test/admin">
+          <Suspense fallback={<div className="text-center py-10">Loading…</div>}>
+            <McqAdmin />
+          </Suspense>
+        </Route>
 
         <Route>⚠️ 404 - Page Not Found</Route>
       </Switch>

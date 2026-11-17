@@ -4,9 +4,8 @@ export function formatCurrency(value) {
   return `£${num.toFixed(2)}`;
 }
 
-export function generateReportFromLocalStorage() {
-  const data = JSON.parse(localStorage.getItem('sopFormData'));
-  if (!data) return 'No data found in localStorage.';
+export function generateReport(data) {
+  if (!data) return 'No data entered yet.';
 
   const lines = [];
 
@@ -51,17 +50,12 @@ export function generateReportFromLocalStorage() {
     "mobileContact", "others", "overPayment", "advancePayment", "ccj", "hmrc", "councilTax"
   ];
 
-  let totalDebt = 0;
-  let totalPayment = 0;
-
   debtSections.forEach((key) => {
     const section = data.debtConfirmation?.[key];
     if (Array.isArray(section)) {
       section.forEach((item) => {
         const amount = parseFloat(item.amount || 0);
         const payment = parseFloat(item.payment || 0);
-        totalDebt += amount;
-        totalPayment += payment;
 
         const displayName = item.name === "Other" ? item.customName : item.name;
         const baseLine = `- ${displayName} – ${formatCurrency(amount)} – ${formatCurrency(payment)}/month`;
@@ -78,9 +72,6 @@ export function generateReportFromLocalStorage() {
     }
   });
   lines.push("");
-
-  // lines.push(`\n**Total Debt:** ${formatCurrency(totalDebt)}`);
-  // lines.push(`**Total Payment:** ${formatCurrency(totalPayment)}/month\n`);
 
   lines.push("RENTAL DETAILS");
   const rentalOrder = ["mortgage", "mortgagePay", "cpv", "private", "privateRent", "council", "councilRent"];

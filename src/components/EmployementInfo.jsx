@@ -1,37 +1,8 @@
-import { useEffect, useState } from "react";
 import AskQuestion from "./AskQuestion";
 import DualInputRow from "./DualInputRow";
 import TitledDualInputSection from "./TitledDualInputSection";
 
-const EmployementInfo = ({ value = {}, onChange }) => {
-  const [haveKids, setHaveKids] = useState(false);
-
-  useEffect(() => {
-    const updateHaveKidsFromStorage = () => {
-      const storedData = localStorage.getItem('sopFormData');
-      try {
-        const parsed = JSON.parse(storedData);
-        setHaveKids(parsed?.maritalStatus?.haveKids === "yes");
-      } catch (err) {
-        console.error("Error parsing localStorage data", err);
-      }
-    };
-
-    // Polling
-    const interval = setInterval(updateHaveKidsFromStorage, 1000);
-
-    // Listen for cross-tab changes
-    window.addEventListener("storage", updateHaveKidsFromStorage);
-
-    // Initial check
-    updateHaveKidsFromStorage();
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", updateHaveKidsFromStorage);
-    };
-  }, [])
-
+const EmployementInfo = ({ value = {}, onChange, haveKids = false }) => {
   // Helper to update a field
   const handleChange = (field, val) => {
     onChange({ ...value, [field]: val });

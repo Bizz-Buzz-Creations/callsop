@@ -4,9 +4,9 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist'] },
+  { ignores: ['dist', 'tests'] },
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,mjs}'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -29,5 +29,10 @@ export default [
         { allowConstantExport: true },
       ],
     },
+  },
+  // Server-side code runs on Node (process, Buffer, ...), not in a browser.
+  {
+    files: ['netlify/api/**/*.js', 'netlify/functions/**', 'scripts/**', 'vite.config.js'],
+    languageOptions: { globals: { ...globals.node } },
   },
 ]

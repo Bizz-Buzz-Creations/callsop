@@ -1,7 +1,11 @@
+import { useId } from 'react';
 import { Plus, Minus } from 'lucide-react';
 import creditors from '../assets/creditors.json';
 
-const ArrearOptions = ({ index, value, onChange }) => (
+// `groupId` is unique per creditor list. Radio buttons only form a group by
+// `name`, so without it row 0 of Gas, Electric, Water... all shared one group
+// and picking "Previous Year" in one list unchecked the others on screen.
+const ArrearOptions = ({ groupId, index, value, onChange }) => (
   <div className="flex items-center gap-4 mb-4">
     <span className="text-lg font-medium">Arrear</span>
     <div className="flex gap-6">
@@ -9,7 +13,7 @@ const ArrearOptions = ({ index, value, onChange }) => (
         <label key={type} className="flex items-center gap-2">
           <input
             type="radio"
-            name={`arrear-${index}`}
+            name={`arrear-${groupId}-${index}`}
             value={type}
             checked={value === type}
             onChange={(e) => onChange(index, "arrear", e.target.value)}
@@ -21,7 +25,7 @@ const ArrearOptions = ({ index, value, onChange }) => (
   </div>
 );
 
-const InputRow = ({ index, input, isGD, isArrear, onChange }) => (
+const InputRow = ({ groupId, index, input, isGD, isArrear, onChange }) => (
   <div>
     <div className="flex gap-5">
       {isGD || input.name === 'Other' ? (
@@ -74,6 +78,7 @@ const InputRow = ({ index, input, isGD, isArrear, onChange }) => (
     </div>
     {isArrear && (
       <ArrearOptions
+        groupId={groupId}
         index={index}
         value={input.arrear}
         onChange={onChange}
@@ -83,6 +88,7 @@ const InputRow = ({ index, input, isGD, isArrear, onChange }) => (
 );
 
 const DynamicInputGenerator = ({ value = [], onChange, isArrear, isGD }) => {
+  const groupId = useId();
   const handleChange = (e) => {
     const newLength = parseInt(e.target.value) || 0;
     const newInputs = Array.from({ length: newLength }, (_, i) => value[i] || { name: '', amount: '', payment: '' });
@@ -165,6 +171,7 @@ const DynamicInputGenerator = ({ value = [], onChange, isArrear, isGD }) => {
         {value.map((input, index) => (
           <InputRow
             key={index}
+            groupId={groupId}
             index={index}
             input={input}
             isGD={isGD}

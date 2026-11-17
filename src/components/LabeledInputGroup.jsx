@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import DynamicInputGenerator from "./DynamicInputGenerator";
 
 const LabeledInputGroup = ({ label, value = "", onChange, isArrear, isGD }) => {

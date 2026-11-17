@@ -4,6 +4,9 @@
 # production
 /dist
 
+# bundle analyzer report (npm run analyze)
+/stats.html
+
 # local environment
 .env
 .env.local
