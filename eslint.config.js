@@ -4,7 +4,8 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist', 'tests'] },
+  // ip-filter.js is the team's file with the whitelist switched off (commented-out code)
+  { ignores: ['dist', 'tests', 'netlify/edge-functions/ip-filter.js'] },
   {
     files: ['**/*.{js,jsx,mjs}'],
     languageOptions: {

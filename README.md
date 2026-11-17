@@ -20,7 +20,9 @@ How it is secured (all enforced on the server, in `netlify/api/`):
 - Admin passwords are stored hashed (scrypt). Login tokens are signed and expire after 8 hours.
   After 8 failed logins an email or IP is locked out for 15 minutes. All input is validated, so
   NoSQL-injection payloads are rejected.
-- Everything sits behind the existing IP allowlist (`netlify/edge-functions/ip-filter.js`).
+- The IP allowlist (`netlify/edge-functions/ip-filter.js`) is currently switched off, so the
+  API's own login, lockout and validation are the only gates. If you re-enable the allowlist it
+  also covers `/api`.
 
 The admin sees each test by the agent's name, a test number (#1, #2, …) and the start time.
 Retakes are unlimited; an admin can delete a test from the **Attempts** tab.

@@ -1,3 +1,7 @@
+[build]
+command = "npm run build"
+publish = "dist"
+
 [build.environment]
 # The MongoDB driver and the API need a current Node version.
 NODE_VERSION = "22"
@@ -7,7 +11,7 @@ path = "/*"
 function = "ip-filter"
 
 # The MCQ test API (netlify/functions/api.mjs). This rule must stay ABOVE the
-# catch-all redirect below, because Netlify uses the first rule that matches.
+# catch-all below, because Netlify uses the first rule that matches.
 [[redirects]]
 from = "/api/*"
 to = "/.netlify/functions/api"
@@ -16,6 +20,5 @@ force = true
 
 [[redirects]]
 from = "/*"
-to = "https://callsop.bbcfinsrv.com/:splat"
-status = 301
-force = true
+to = "/index.html"
+status = 200

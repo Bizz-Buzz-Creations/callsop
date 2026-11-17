@@ -11,7 +11,6 @@ are never touched.
 | Suite | What it checks |
 |---|---|
 | `api.test.mjs` | The API against a real MongoDB: the answer key never reaches agents, scoring, access control, NoSQL injection, login lockout, forged/expired tokens, concurrency |
-| `ip-filter.test.mjs` | The Netlify IP allowlist (IPv4, IPv6, ranges) |
 | `app.e2e.cjs` | SOP wizard, report, rebuttals dialog, calculator, navigation (Playwright) |
 | `mcq.e2e.cjs` | MCQ test and admin panel end to end |
 | `mcq-extra.e2e.cjs` | Two agents at once, phone width, closed test, admin sessions |

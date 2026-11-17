@@ -81,7 +81,6 @@ try {
 
   // 2. Tests that need no browser
   run("API (netlify/api against MongoDB)", ["tests/api.test.mjs"], env);
-  run("IP filter edge function", ["tests/ip-filter.test.mjs"], env);
 
   // 3. Build the site into a temp folder (your dist/ is never touched)
   console.log("\nBuilding the site for the browser tests...");
