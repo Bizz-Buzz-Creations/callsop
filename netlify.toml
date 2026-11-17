@@ -11,10 +11,11 @@ path = "/*"
 function = "ip-filter"
 
 # The MCQ test API (netlify/functions/api.mjs). This rule must stay ABOVE the
-# catch-all below, because Netlify uses the first rule that matches.
+# catch-all below, because Netlify uses the first rule that matches. :splat keeps
+# the rest of the path (/api/health -> /.netlify/functions/api/health).
 [[redirects]]
 from = "/api/*"
-to = "/.netlify/functions/api"
+to = "/.netlify/functions/api/:splat"
 status = 200
 force = true
 
