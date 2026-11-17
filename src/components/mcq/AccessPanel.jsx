@@ -157,7 +157,7 @@ const AccessPanel = () => {
             aria-label="Label"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="Label (e.g. Ishika home)"
+            placeholder="Label (e.g. home IP)"
             maxLength={80}
             className="flex-1 min-w-48 p-1 border rounded indent-1"
           />
