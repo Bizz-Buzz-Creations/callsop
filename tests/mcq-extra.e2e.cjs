@@ -2,7 +2,7 @@
 // exam-mode protections, admin sessions. See tests/README.md.
 const path = require("path");
 const os = require("os");
-const { BASE, bank, createRunner, launch, reset, seedAdmin, requireTestApi, adminToken, seedQuestions, setConfig, displayOrder, answerBank } = require("./lib.cjs");
+const { BASE, bank, createRunner, launch, reset, seedAdmin, requireTestApi, adminToken, createTest, importQuestions, bankQuestions, updateTest, displayOrder, answerBank } = require("./lib.cjs");
 
 const { ok, group, finish } = createRunner();
 const key = bank.map((q) => "ABCD".indexOf(q.answer));
@@ -22,30 +22,44 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     return page;
   };
   const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const TITLE = "Disposition Test";
   const startAs = async (p, name) => { await p.getByLabel("Your name").fill(name); await p.getByRole("button", { name: "Start Test" }).click(); };
+  // From the list of tests: open the test's card, then start it.
+  const startFromList = async (p, name) => {
+    await p.goto(`${BASE}/test`);
+    await p.getByRole("article", { name: TITLE }).getByRole("link").click();
+    await startAs(p, name);
+  };
+  let testId;
 
   const ann = await mk("ann", { width: 375, height: 800 }); // a phone
   const bob = await mk("bob");
   const admin = await mk("admin");
 
-  await group("empty bank and closed test", async () => {
+  await group("a test with no questions, and a closed test", async () => {
+    testId = await createTest(tok, { title: TITLE, passPercent: 70 });
     await ann.goto(`${BASE}/test`);
+    await ann.getByText("No tests are available right now.").waitFor();
+    ok("an empty test is NOT offered on the list", true);
+    ok("the list fits a 375px phone (no sideways scroll)", (await overflow(ann)) <= 1, await overflow(ann));
+
+    await ann.goto(`${BASE}/test/${testId}`); // someone with the direct link
     await ann.getByRole("button", { name: "Start Test" }).waitFor();
     ok("start screen fits a 375px phone (no sideways scroll)", (await overflow(ann)) <= 1, await overflow(ann));
     ok("start screen asks for a name only", (await ann.locator("input").count()) === 1);
     await startAs(ann, "Ann Lee");
-    await ann.getByText("No questions have been added yet.").waitFor();
-    ok("empty question bank -> clear message, no crash", true);
+    await ann.getByText("No questions have been added to this test yet.").waitFor();
+    ok("starting an empty test -> clear message, no crash", true);
 
-    await setConfig(tok, { title: "Disposition Test", passPercent: 70, maxAttempts: 1, active: false });
+    await updateTest(tok, testId, { title: TITLE, passPercent: 70, active: false });
     await ann.reload();
     await ann.getByText("This test is not open right now.").first().waitFor();
     ok("closed test: message shown", true);
     await ann.getByLabel("Your name").fill("Ann Lee");
     ok("closed test: Start is disabled even with a name", await ann.getByRole("button", { name: "Start Test" }).isDisabled());
-    ok("closed test uses the admin's title", (await ann.getByRole("heading", { name: "Disposition Test" }).count()) === 1);
-    await setConfig(tok, { title: "Disposition Test", passPercent: 70, maxAttempts: 1, active: true });
-    await seedQuestions(tok);
+    ok("closed test shows the test's title", (await ann.getByRole("heading", { name: TITLE }).count()) === 1);
+    await updateTest(tok, testId, { title: TITLE, passPercent: 70, active: true });
+    await importQuestions(tok, testId, bankQuestions);
   });
 
   await group("admin watches two agents at once", async () => {
@@ -53,16 +67,15 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     await admin.getByLabel("Username").fill("boss@example.com");
     await admin.getByLabel("Password").fill("correct-horse-1");
     await admin.getByRole("button", { name: "Log in" }).click();
+    await admin.getByRole("button", { name: "Attempts", exact: true }).click();
     await admin.getByText("No attempts yet.").waitFor();
 
-    await ann.reload();
-    await startAs(ann, "Ann Lee");
+    await startFromList(ann, "Ann Lee");
     await ann.locator("fieldset").first().waitFor();
-    await bob.goto(`${BASE}/test`);
-    await startAs(bob, "Bob Ray");
+    await startFromList(bob, "Bob Ray");
     await bob.locator("fieldset").first().waitFor();
     await admin.waitForFunction(() => document.querySelectorAll("tbody tr").length === 2, null, { timeout: 10000 });
-    ok("admin sees both agents by name (Test #1 and #2)", (await admin.locator("tbody tr").filter({ hasText: "Ann Lee" }).count()) === 1 && (await admin.locator("tbody tr").filter({ hasText: "Bob Ray" }).count()) === 1);
+    ok("admin sees both agents by name", (await admin.locator("tbody tr").filter({ hasText: "Ann Lee" }).count()) === 1 && (await admin.locator("tbody tr").filter({ hasText: "Bob Ray" }).count()) === 1);
 
     const bobOrder = await displayOrder(bob);
     for (let i = 0; i < 5; i++) await answerBank(bob, bobOrder, i, key[i]);
@@ -70,11 +83,11 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     ok("admin sees Bob's answer count update (5/30)", true);
 
     await bob.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange")); });
-    await admin.locator("div.bg-red-600", { hasText: "Bob Ray (Test #2)" }).first().waitFor({ timeout: 10000 });
-    ok("alert names Bob Ray (Test #2)", true);
+    await admin.locator("div.bg-red-600", { hasText: `Bob Ray (Attempt #2, ${TITLE})` }).first().waitFor({ timeout: 10000 });
+    ok("alert names Bob Ray, the attempt and the test", true);
     ok("no alert for Ann Lee", (await admin.locator("div.bg-red-600", { hasText: "Ann Lee" }).count()) === 0);
     const rows = {};
-    for (const r of await admin.locator("tbody tr").all()) { const t = (await r.innerText()).replace(/\s+/g, " "); if (/^Ann Lee #1 /.test(t)) rows.ann = t; if (/^Bob Ray #2 /.test(t)) rows.bob = t; }
+    for (const r of await admin.locator("tbody tr").all()) { const t = (await r.innerText()).replace(/\s+/g, " "); if (t.startsWith(`Ann Lee ${TITLE} #1 `)) rows.ann = t; if (t.startsWith(`Bob Ray ${TITLE} #2 `)) rows.bob = t; }
     ok("per-row warning counts: Ann 0, Bob 1", / 0 Details/.test(rows.ann) && / 1 Details/.test(rows.bob), JSON.stringify(rows));
   });
 
@@ -93,7 +106,7 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     ok("copy blocked during test", during.copy);
     ok("leaving the page asks for confirmation (beforeunload)", during.beforeunload);
     ok("running test fits a 375px phone", (await overflow(ann)) <= 1, await overflow(ann));
-    const idle = await (async () => { const p = await mk("idle"); await p.goto(`${BASE}/test`); await p.getByRole("button", { name: "Start Test" }).waitFor(); return probe(p); })();
+    const idle = await (async () => { const p = await mk("idle"); await p.goto(`${BASE}/test`); await p.getByRole("heading", { name: "Tests", exact: true }).waitFor(); return probe(p); })();
     ok("protections are OFF outside a running test", !idle.contextmenu && !idle.copy && !idle.beforeunload, JSON.stringify(idle));
 
     const annOrder = await displayOrder(ann);
@@ -121,13 +134,13 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
   await group("admin session handling", async () => {
     // Agent and admin in the SAME browser profile do not interfere.
     const sameBrowser = await admin.context().newPage();
-    await sameBrowser.goto(`${BASE}/test`);
-    await startAs(sameBrowser, "Cy Dee");
+    await startFromList(sameBrowser, "Cy Dee");
     await sameBrowser.locator("fieldset").first().waitFor();
     ok("an agent can take the test in the admin's own browser", (await sameBrowser.locator("fieldset").count()) === 30);
     await admin.reload();
     await admin.getByRole("heading", { name: "Test Admin Panel" }).waitFor();
     ok("the admin stays logged in after a reload", (await admin.locator("table").count()) === 1);
+    await admin.getByRole("button", { name: "Attempts", exact: true }).click();
     await admin.getByText("3 attempt(s)").waitFor({ timeout: 10000 });
     ok("admin sees the third test", true);
 
@@ -139,16 +152,18 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     ok("revisiting the admin URL after logout asks for login again", (await admin.locator("table").count()) === 0);
     const agentOnAdmin = await mk("agent-on-admin");
     await agentOnAdmin.goto(`${BASE}/test`); // gets an agent session
-    await agentOnAdmin.getByRole("button", { name: "Start Test" }).waitFor();
+    await agentOnAdmin.getByRole("heading", { name: "Tests", exact: true }).waitFor();
     await agentOnAdmin.goto(`${BASE}/test/admin`);
     await agentOnAdmin.getByLabel("Username").waitFor();
     ok("an agent's session does NOT unlock the admin panel", (await agentOnAdmin.locator("table").count()) === 0);
     await admin.getByLabel("Username").fill("boss@example.com");
     await admin.getByLabel("Password").fill("correct-horse-1");
     await admin.getByRole("button", { name: "Log in" }).click();
+    await admin.getByRole("button", { name: "Attempts", exact: true }).click();
     await admin.getByText("3 attempt(s)").waitFor({ timeout: 10000 });
     ok("logging back in shows the existing attempts", true);
-    await admin.getByRole("button", { name: "Questions", exact: true }).click();
+    await admin.getByRole("button", { name: "Tests", exact: true }).click();
+    await admin.getByRole("button", { name: "Edit" }).click();
     await admin.getByText("30 question(s)").waitFor();
     ok("question bank intact (30)", true);
     ok("question cards show the correct answers to the admin", (await admin.locator("li.text-green-600").count()) === 30);
@@ -162,8 +177,9 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     await gone.getByLabel("Password").fill("correct-horse-1");
     await gone.getByRole("button", { name: "Log in" }).click();
     await gone.getByRole("heading", { name: "Test Admin Panel" }).waitFor();
+    await gone.getByRole("button", { name: "Attempts", exact: true }).click(); // this tab polls every few seconds
     await require("./lib.cjs").withDb((db) => db.collection("admins").deleteMany({}));
-    // The Attempts tab polls every few seconds; the next poll gets a 401.
+    // The next poll gets a 401.
     await gone.getByLabel("Username").waitFor({ timeout: 10000 });
     ok("removing the admin sends their open panel back to login within seconds", true);
   });

@@ -10,11 +10,12 @@ are never touched.
 
 | Suite | What it checks |
 |---|---|
-| `api.test.mjs` | The API against a real MongoDB: the answer key never reaches agents, scoring, access control, NoSQL injection, login lockout, forged/expired tokens, concurrency |
+| `api.test.mjs` | The API against a real MongoDB (multiple tests, per-test questions and pass marks, migration): the answer key never reaches agents, scoring, access control, NoSQL injection, login lockout, forged/expired tokens, concurrency |
 | `access.test.mjs` | IP allowlist: shared IP code, admin routes, and the real edge function against the real API (switch off/on, built-in IPs, expiry, spoofing, database-down behaviour) |
 | `app.e2e.cjs` | SOP wizard, report, rebuttals dialog, calculator, navigation (Playwright) |
-| `mcq.e2e.cjs` | MCQ test and admin panel end to end |
-| `mcq-extra.e2e.cjs` | Two agents at once, phone width, closed test, admin sessions |
+| `mcq.e2e.cjs` | One test end to end: admin creates it and its questions, an agent takes it from the list, warnings, scoring, retake |
+| `mcq-extra.e2e.cjs` | Two agents at once, phone width, empty and closed tests, admin sessions |
+| `tests.e2e.cjs` | Multiple tests: admin creates several, list shows only what agents can take, per-test pass marks and statuses, resume, closed/deleted tests, bad links, duplicate, migration of old data |
 | `access.e2e.cjs` | The admin Access tab: add/remove IPs, lock-out protection, ON/OFF |
 
 ## Requirements

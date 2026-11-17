@@ -3,9 +3,13 @@ import { Link, useLocation } from 'wouter';
 const Navbar = () => {
   const [location] = useLocation();
 
+  // "MCQ Test" stays highlighted on the list, on any single test and on the admin page.
+  const isActive = (path) =>
+    path === '/test' ? location === path || location.startsWith('/test/') : location === path;
+
   const linkClass = (path) =>
     `px-4 py-2 rounded transition ${
-      location === path
+      isActive(path)
         ? 'bg-indigo-500 text-white'
         : 'hover:underline hover:text-indigo-300'
     }`;

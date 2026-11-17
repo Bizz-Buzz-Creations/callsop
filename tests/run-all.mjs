@@ -84,8 +84,13 @@ const exec = (args, { env, stdio = "inherit", timeoutMs } = {}) =>
   });
 
 const failures = [];
+// `npm test -- mcq tests` runs only the suites whose label or file name contains one of the words.
+const only = process.argv.slice(2).map((word) => word.toLowerCase());
+const wanted = (label, file) =>
+  only.length === 0 || only.some((word) => label.toLowerCase().includes(word) || file.toLowerCase().includes(word));
 const SUITE_TIMEOUT_MS = 8 * 60_000;
 const run = async (label, args, env) => {
+  if (!wanted(label, args[0])) return;
   // A suite that gets stuck (the throwaway database occasionally wedges) is stopped
   // after a time limit and retried once, instead of hanging the whole run.
   for (const attempt of [1, 2]) {
@@ -144,6 +149,7 @@ try {
   await run("Whole app (SOP, report, dialog, calculator)", ["tests/app.e2e.cjs"], env);
   await run("MCQ test + admin panel", ["tests/mcq.e2e.cjs"], env);
   await run("MCQ edge cases", ["tests/mcq-extra.e2e.cjs"], env);
+  await run("Multiple tests (admin + agents)", ["tests/tests.e2e.cjs"], env);
   await run("Admin: IP access tab", ["tests/access.e2e.cjs"], env);
 } catch (err) {
   console.error(`\n${err.message}`);

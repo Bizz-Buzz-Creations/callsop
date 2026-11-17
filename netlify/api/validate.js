@@ -7,6 +7,11 @@ import { HttpError, isPlainObject } from "./http.js";
 export const LETTERS = ["A", "B", "C", "D", "E", "F"];
 export const VIOLATION_TYPES = ["tab-switch", "window-blur"];
 
+// Throws a 400 with this message (handy inside expressions).
+export const fail = (message) => {
+  throw new HttpError(400, message);
+};
+
 export const object = (value, what = "Request") => {
   if (!isPlainObject(value)) throw new HttpError(400, `${what} must be an object.`);
   return value;

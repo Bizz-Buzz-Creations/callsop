@@ -5,9 +5,11 @@ import {
   LETTERS,
   findOpenAttempt,
   friendlyError,
+  getSavedName,
   loadTest,
   logViolation,
   saveAnswer,
+  saveName,
   startAttempt,
   submitAttempt,
 } from "../utils/mcqApi";
@@ -22,15 +24,16 @@ const shuffled = (list) => {
   return copy;
 };
 
-const McqTest = () => {
-  // loading | start | test | result
+// One test, chosen by the id in the address (/test/<id>).
+const McqTest = ({ testId }) => {
+  // loading | missing | start | test | result
   const [stage, setStage] = useState("loading");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false); // in-page "submit?" box
 
-  const [name, setName] = useState("");
-  const [config, setConfig] = useState(null);
+  const [name, setName] = useState(getSavedName);
+  const [config, setConfig] = useState(null); // the test: { id, title, description, passPercent, active }
   const [bank, setBank] = useState([]); // every question currently in the bank
   const [attempt, setAttempt] = useState(null); // { id, questionIds }
   const [answers, setAnswers] = useState({});
@@ -55,12 +58,12 @@ const McqTest = () => {
     let cancelled = false;
     (async () => {
       try {
-        const [{ config: loadedConfig, questions: loadedQuestions }, open] = await Promise.all([
-          loadTest(),
-          findOpenAttempt(),
+        const [{ test: loadedTest, questions: loadedQuestions }, open] = await Promise.all([
+          loadTest(testId),
+          findOpenAttempt(testId),
         ]);
         if (cancelled) return;
-        setConfig(loadedConfig);
+        setConfig(loadedTest);
         setBank(loadedQuestions);
         if (open) {
           setName(open.name || "");
@@ -73,13 +76,15 @@ const McqTest = () => {
       } catch (err) {
         if (cancelled) return;
         setError(friendlyError(err));
-        setStage("start");
+        // A test that does not exist (or a bad link) gets its own page; other errors
+        // (for example no connection) keep the start screen so the agent can retry.
+        setStage(err?.status === 404 || err?.status === 400 ? "missing" : "start");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [testId]);
 
   // Proctoring: while the test runs, leaving the tab or window is reported to
   // the admin. The test itself carries on.
@@ -142,10 +147,11 @@ const McqTest = () => {
     setBusy(true);
     setError("");
     try {
-      const started = await startAttempt(name.trim());
+      saveName(name.trim());
+      const started = await startAttempt(name.trim(), testId);
       // Re-read the bank so the attempt uses the latest questions.
-      const fresh = await loadTest();
-      setConfig(fresh.config);
+      const fresh = await loadTest(testId);
+      setConfig(fresh.test);
       setBank(fresh.questions);
       setAttempt({ id: started.attemptId, questionIds: started.questionIds });
       setAnswers(started.answers || {});
@@ -198,14 +204,28 @@ const McqTest = () => {
     return <div className="text-center py-10">Loading test…</div>;
   }
 
+  if (stage === "missing") {
+    return (
+      <section className="max-w-xl mx-auto mt-8 p-6 border rounded-md shadow bg-gray-100">
+        <h1 className="text-2xl font-semibold mb-2">Test not found</h1>
+        <p className="mb-4">{error || "This test does not exist any more."}</p>
+        <Link to="/test" className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 inline-block">
+          See all tests
+        </Link>
+      </section>
+    );
+  }
+
   if (stage === "start") {
     const title = config?.title || "MCQ Test";
     return (
       <section className="max-w-xl mx-auto mt-8 p-6 border rounded-md shadow bg-gray-100">
-        <h1 className="text-2xl font-semibold mb-1">{title}</h1>
+        <Link to="/test" className="text-sm text-gray-500 hover:underline">← All tests</Link>
+        <h1 className="text-2xl font-semibold mb-1 mt-2">{title}</h1>
+        {config?.description && <p className="text-gray-600 mb-2 whitespace-pre-line">{config.description}</p>}
         {config && (
           <p className="text-gray-700 mb-4">
-            {bank.length} multiple-choice questions. Pass mark: {config.passPercent}%.
+            {bank.length} multiple-choice question{bank.length === 1 ? "" : "s"}. Pass mark: {config.passPercent}%.
           </p>
         )}
 
@@ -261,7 +281,8 @@ const McqTest = () => {
     const reviewed = questions.filter((q) => result.correct?.[q.id]);
     return (
       <section className="max-w-3xl mx-auto mt-8 p-4 border rounded-md shadow bg-gray-100">
-        <h1 className="text-2xl font-semibold mb-3">Your Result</h1>
+        <h1 className="text-2xl font-semibold mb-1">Your Result</h1>
+        <p className="text-gray-600 mb-3">{config?.title}</p>
 
         <div className={`rounded p-4 text-white mb-4 ${result.passed ? "bg-green-600" : "bg-red-600"}`}>
           <p className="text-3xl font-bold">
@@ -313,12 +334,17 @@ const McqTest = () => {
           })}
         </div>
 
-        <button
-          onClick={handleRestart}
-          className="mt-4 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-        >
-          Back to start
-        </button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link to="/test" className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600">
+            Back to all tests
+          </Link>
+          <button
+            onClick={handleRestart}
+            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            Retake this test
+          </button>
+        </div>
       </section>
     );
   }

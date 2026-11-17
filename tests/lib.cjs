@@ -60,7 +60,7 @@ const withDb = async (fn) => {
 
 // Empties every collection but keeps indexes (the running API has cached them).
 const reset = () => withDb(async (db) => {
-  for (const n of ["admins", "config", "questions", "attempts", "violations", "loginFailures", "counters"]) await db.collection(n).deleteMany({});
+  for (const n of ["admins", "config", "tests", "questions", "attempts", "violations", "loginFailures", "counters"]) await db.collection(n).deleteMany({});
 });
 
 const seedAdmin = async (email, password) => {
@@ -74,8 +74,19 @@ const api = async (method, p, { token, body } = {}) => {
   return { status: res.status, data: await res.json().catch(() => null) };
 };
 const adminToken = async (email, password) => (await api("POST", "/admin/login", { body: { email, password } })).data.token;
-const seedQuestions = (token) => api("POST", "/admin/questions/import", { token, body: { mode: "replace", questions: bank.map(({ section, question, options, answer }) => ({ section, question, options, answer })) } });
-const setConfig = (token, config) => api("PUT", "/admin/config", { token, body: config });
+// Tests (the exams): create one, fill it with questions, change its settings.
+const createTest = async (token, fields) => (await api("POST", "/admin/tests", { token, body: fields })).data.id;
+const importQuestions = (token, testId, questions) => api("POST", `/admin/tests/${testId}/questions/import`, { token, body: { mode: "replace", questions } });
+const bankQuestions = bank.map(({ section, question, options, answer }) => ({ section, question, options, answer }));
+// A test holding the built-in 30 questions. Returns its id.
+const createBankTest = async (token, title = "Call Disposition Assessment", fields = {}) => {
+  const id = await createTest(token, { title, passPercent: 70, ...fields });
+  await importQuestions(token, id, bankQuestions);
+  return id;
+};
+// n simple questions (every correct answer is B).
+const simpleQuestions = (n, prefix = "Q") => Array.from({ length: n }, (_, i) => ({ section: "", question: `${prefix}${i + 1}: pick B`, options: ["A one", "B two", "C three"], answer: "B" }));
+const updateTest = (token, testId, fields) => api("PUT", `/admin/tests/${testId}`, { token, body: fields });
 
 // Questions are shuffled on every page load, so tests find each one by its text.
 // displayOrder(page) -> bank index of each question, in the order shown.
@@ -96,4 +107,4 @@ const requireTestApi = async (email, password) => {
   return token;
 };
 
-module.exports = { requireTestApi, displayOrder, answerBank, ROOT, BASE, API, MONGO_URI, DB, bank, rebuttals, pitch, createRunner, launch, withDb, reset, seedAdmin, api, adminToken, seedQuestions, setConfig };
+module.exports = { requireTestApi, displayOrder, answerBank, ROOT, BASE, API, MONGO_URI, DB, bank, rebuttals, pitch, createRunner, launch, withDb, reset, seedAdmin, api, adminToken, createTest, importQuestions, createBankTest, simpleQuestions, updateTest, bankQuestions };

@@ -28,17 +28,30 @@ const MAX_LOGIN_FAILURES = 8; // per email and per IP, per 15 minutes
 const MAX_VIOLATIONS_PER_ATTEMPT = 500;
 const MAX_IMPORT_QUESTIONS = 500;
 
-const DEFAULT_CONFIG = {
-  title: "Call Disposition Assessment",
-  passPercent: 70,
-  active: true,
+const MAX_TESTS = 100;
+const DEFAULT_PASS_PERCENT = 70;
+
+// A test as agents (and the list) see it.
+const publicTest = (t) => ({
+  id: t._id.toHexString(),
+  title: t.title,
+  description: t.description || "",
+  passPercent: t.passPercent ?? DEFAULT_PASS_PERCENT,
+  active: t.active !== false,
+});
+
+// Loads a test by its hex id, or throws a 404.
+const findTest = async (db, hexId) => {
+  const test = await db.collection("tests").findOne({ _id: v.objectId(hexId, "test") });
+  if (!test) throw new HttpError(404, "That test does not exist.");
+  return test;
 };
 
-const loadConfig = async (db) => {
-  const stored = await db.collection("config").findOne({ _id: "test" });
-  const { _id, ...rest } = stored || {};
-  return { ...DEFAULT_CONFIG, ...rest };
-};
+// Questions and attempts store their test as a hex string in `testId`.
+const countByTest = async (db, collection) =>
+  Object.fromEntries(
+    (await db.collection(collection).aggregate([{ $group: { _id: "$testId", n: { $sum: 1 } } }]).toArray()).map((row) => [row._id, row.n])
+  );
 
 const publicQuestion = (q) => ({
   id: q._id.toHexString(),
@@ -80,23 +93,56 @@ route("POST", "/session", null, async () =>
   json(200, { token: signToken({ role: "agent", sub: newSessionId() }, AGENT_TOKEN_SECONDS) })
 );
 
-// Settings + questions WITHOUT answers.
-route("GET", "/test", "agent", async ({ db }) => {
-  const [config, questions] = await Promise.all([
-    loadConfig(db),
-    db.collection("questions").find({}, { projection: { answer: 0 } }).sort({ order: 1 }).toArray(),
+// The tests an agent can take, with this browser's own progress on each.
+route("GET", "/tests", "agent", async ({ db, auth }) => {
+  const [tests, questionCounts, mine] = await Promise.all([
+    db.collection("tests").find({}).sort({ createdAt: 1 }).toArray(),
+    countByTest(db, "questions"),
+    db
+      .collection("attempts")
+      .find({ sid: auth.sub }, { projection: { testId: 1, status: 1, score: 1, total: 1, percent: 1, passed: 1 } })
+      .sort({ startedAt: -1 })
+      .limit(300)
+      .toArray(),
   ]);
+  const open = {};
+  const last = {};
+  for (const a of mine) {
+    if (a.status === "in-progress") open[a.testId] ||= a._id.toHexString();
+    else if (!last[a.testId]) last[a.testId] = { score: a.score, total: a.total, percent: a.percent, passed: a.passed };
+  }
   return json(200, {
-    config: { title: config.title, passPercent: config.passPercent, active: config.active },
-    questions: questions.map(publicQuestion),
+    tests: tests
+      .map((t) => ({
+        ...publicTest(t),
+        questionCount: questionCounts[t._id.toHexString()] || 0,
+        openAttemptId: open[t._id.toHexString()] || null,
+        last: last[t._id.toHexString()] || null,
+      }))
+      // Open tests that have questions, plus any test this browser still has to finish.
+      .filter((t) => (t.active && t.questionCount > 0) || t.openAttemptId),
   });
 });
 
-route("GET", "/attempt/open", "agent", async ({ db, auth }) => {
-  const open = await db.collection("attempts").findOne({ sid: auth.sub, status: "in-progress" });
+// One test and its questions WITHOUT answers.
+route("GET", "/test/([^/]+)", "agent", async ({ db, params }) => {
+  const test = await findTest(db, params[0]);
+  const questions = await db
+    .collection("questions")
+    .find({ testId: test._id.toHexString() }, { projection: { answer: 0 } })
+    .sort({ order: 1 })
+    .toArray();
+  return json(200, { test: publicTest(test), questions: questions.map(publicQuestion) });
+});
+
+// This browser's unfinished attempt in one test, if any.
+route("GET", "/attempt/open", "agent", async ({ db, auth, req }) => {
+  const testId = v.hexId(new URL(req.url).searchParams.get("testId"), "test");
+  const open = await db.collection("attempts").findOne({ sid: auth.sub, status: "in-progress", testId });
   return json(200, {
     attempt: open && {
       id: open._id.toHexString(),
+      testId: open.testId,
       name: open.name,
       attemptNo: open.attemptNo,
       questionIds: open.questionIds,
@@ -105,14 +151,15 @@ route("GET", "/attempt/open", "agent", async ({ db, auth }) => {
   });
 });
 
-// Starts (or resumes) a test. Agents give only their name (required, so the admin
-// knows who took it). Each browser session has at most one running test.
+// Starts (or resumes) an attempt at one test. Agents give only their name (required,
+// so the admin knows who took it). A browser has at most one running attempt per test.
 route("POST", "/attempt/start", "agent", async ({ db, auth, body }) => {
   const input = v.object(await body());
   const name = v.text(input.name, "Name", { max: 80 });
+  const test = await findTest(db, v.hexId(input.testId, "test"));
+  const testId = test._id.toHexString();
   const attempts = db.collection("attempts");
-  const config = await loadConfig(db);
-  if (!config.active) throw new HttpError(403, "This test is not open right now.");
+  if (test.active === false) throw new HttpError(403, "This test is not open right now.");
 
   const resume = (open) =>
     json(200, {
@@ -122,18 +169,18 @@ route("POST", "/attempt/start", "agent", async ({ db, auth, body }) => {
       answers: open.answers || {},
     });
 
-  const open = await attempts.findOne({ sid: auth.sub, status: "in-progress" });
+  const open = await attempts.findOne({ sid: auth.sub, status: "in-progress", testId });
   if (open) return resume(open);
 
   const questions = await db
     .collection("questions")
-    .find({}, { projection: { _id: 1 } })
+    .find({ testId }, { projection: { _id: 1 } })
     .sort({ order: 1 })
     .toArray();
-  if (!questions.length) throw new HttpError(409, "No questions have been added yet.");
+  if (!questions.length) throw new HttpError(409, "No questions have been added to this test yet.");
   const questionIds = questions.map((q) => q._id.toHexString()); // frozen at start
 
-  // Sequential number the admin sees ("Test #12").
+  // Sequential number the admin sees ("Attempt #12"), across all tests.
   const counter = await db
     .collection("counters")
     .findOneAndUpdate({ _id: "attempts" }, { $inc: { seq: 1 } }, { upsert: true, returnDocument: "after" });
@@ -141,6 +188,8 @@ route("POST", "/attempt/start", "agent", async ({ db, auth, body }) => {
   try {
     const { insertedId } = await attempts.insertOne({
       sid: auth.sub,
+      testId,
+      testTitle: test.title,
       name,
       attemptNo: counter.seq,
       status: "in-progress",
@@ -153,7 +202,7 @@ route("POST", "/attempt/start", "agent", async ({ db, auth, body }) => {
   } catch (err) {
     if (err?.code === 11000) {
       // Two starts raced; the unique index kept only one. Resume that one.
-      const winner = await attempts.findOne({ sid: auth.sub, status: "in-progress" });
+      const winner = await attempts.findOne({ sid: auth.sub, status: "in-progress", testId });
       if (winner) return resume(winner);
     }
     throw err;
@@ -220,7 +269,11 @@ route("POST", "/attempt/([^/]+)/submit", "agent", async ({ db, auth, params, bod
     if (typeof sent[id] === "string" && v.LETTERS.includes(sent[id])) answers[id] = sent[id];
   });
 
-  const config = await loadConfig(db);
+  // The pass mark of the test as it is NOW (a deleted test falls back to the default).
+  const test = ObjectId.isValid(attempt.testId)
+    ? await db.collection("tests").findOne({ _id: new ObjectId(attempt.testId) }, { projection: { passPercent: 1 } })
+    : null;
+  const passPercent = test?.passPercent ?? DEFAULT_PASS_PERCENT;
   const total = scoredIds.length;
   const score = scoredIds.filter((id) => answers[id] === correct[id]).length;
   const percent = total ? Math.round((score / total) * 100) : 0;
@@ -228,8 +281,8 @@ route("POST", "/attempt/([^/]+)/submit", "agent", async ({ db, auth, params, bod
     score,
     total,
     percent,
-    passed: percent >= config.passPercent,
-    passPercent: config.passPercent,
+    passed: percent >= passPercent,
+    passPercent,
     correct,
   };
 
@@ -281,28 +334,119 @@ route("POST", "/admin/login", null, async ({ db, body, ip }) => {
 
 route("GET", "/admin/me", "admin", async ({ auth }) => json(200, { email: auth.email }));
 
-route("GET", "/admin/questions", "admin", async ({ db }) => {
-  const questions = await db.collection("questions").find({}).sort({ order: 1 }).toArray();
-  return json(200, { questions: questions.map(adminQuestion) });
+// ---- Admin: tests -----------------------------------------------------------------
+
+// Validates the fields of a test. Used for both creating and editing.
+const parseTestInput = (input) => ({
+  title: v.text(input.title, "Title", { max: 120 }),
+  description: input.description == null || input.description === "" ? "" : v.text(input.description, "Description", { max: 500, collapse: false }),
+  passPercent: input.passPercent == null ? DEFAULT_PASS_PERCENT : v.integer(input.passPercent, "Pass mark", { min: 1, max: 100 }),
+  active: input.active == null ? true : input.active === true || input.active === false ? input.active : v.fail("Open must be true or false."),
 });
 
-const nextOrder = async (db) => {
-  const last = await db.collection("questions").find({}, { projection: { order: 1 } }).sort({ order: -1 }).limit(1).toArray();
-  return (last[0]?.order || 0) + 1;
-};
+route("GET", "/admin/tests", "admin", async ({ db }) => {
+  const [tests, questionCounts, attemptCounts] = await Promise.all([
+    db.collection("tests").find({}).sort({ createdAt: 1 }).toArray(),
+    countByTest(db, "questions"),
+    countByTest(db, "attempts"),
+  ]);
+  return json(200, {
+    tests: tests.map((t) => ({
+      ...publicTest(t),
+      createdAt: t.createdAt,
+      questionCount: questionCounts[t._id.toHexString()] || 0,
+      attemptCount: attemptCounts[t._id.toHexString()] || 0,
+    })),
+  });
+});
 
-route("POST", "/admin/questions", "admin", async ({ db, body }) => {
-  const q = v.question(await body());
-  const { insertedId } = await db.collection("questions").insertOne({ ...q, order: await nextOrder(db) });
+route("POST", "/admin/tests", "admin", async ({ db, body }) => {
+  const test = parseTestInput(v.object(await body()));
+  if ((await db.collection("tests").countDocuments({})) >= MAX_TESTS) throw new HttpError(409, `Too many tests (max ${MAX_TESTS}).`);
+  const { insertedId } = await db.collection("tests").insertOne({ ...test, createdAt: new Date() });
   return json(201, { id: insertedId.toHexString() });
 });
 
-route("POST", "/admin/questions/swap", "admin", async ({ db, body }) => {
+// One test with all its questions AND answers (for the editor).
+route("GET", "/admin/tests/([^/]+)", "admin", async ({ db, params }) => {
+  const test = await findTest(db, params[0]);
+  const questions = await db.collection("questions").find({ testId: test._id.toHexString() }).sort({ order: 1 }).toArray();
+  return json(200, { test: publicTest(test), questions: questions.map(adminQuestion) });
+});
+
+route("PUT", "/admin/tests/([^/]+)", "admin", async ({ db, params, body }) => {
+  const test = await findTest(db, params[0]);
+  const changes = parseTestInput(v.object(await body()));
+  await db.collection("tests").updateOne({ _id: test._id }, { $set: changes });
+  return json(200, { ok: true });
+});
+
+// Deleting a test removes everything that belongs to it: its questions, attempts
+// and warnings. The admin panel asks for confirmation first.
+route("DELETE", "/admin/tests/([^/]+)", "admin", async ({ db, params }) => {
+  const test = await findTest(db, params[0]);
+  const testId = test._id.toHexString();
+  const attempts = await db.collection("attempts").find({ testId }, { projection: { _id: 1 } }).toArray();
+  if (attempts.length) await db.collection("violations").deleteMany({ attemptId: { $in: attempts.map((a) => a._id) } });
+  await db.collection("attempts").deleteMany({ testId });
+  await db.collection("questions").deleteMany({ testId });
+  await db.collection("tests").deleteOne({ _id: test._id });
+  return json(200, { deletedAttempts: attempts.length });
+});
+
+// A copy with all questions, closed so the admin can review it before opening it.
+route("POST", "/admin/tests/([^/]+)/duplicate", "admin", async ({ db, params }) => {
+  const source = await findTest(db, params[0]);
+  if ((await db.collection("tests").countDocuments({})) >= MAX_TESTS) throw new HttpError(409, `Too many tests (max ${MAX_TESTS}).`);
+  const { insertedId } = await db.collection("tests").insertOne({
+    title: `${source.title} (copy)`.slice(0, 120),
+    description: source.description || "",
+    passPercent: source.passPercent ?? DEFAULT_PASS_PERCENT,
+    active: false,
+    createdAt: new Date(),
+  });
+  const questions = await db.collection("questions").find({ testId: source._id.toHexString() }).sort({ order: 1 }).toArray();
+  if (questions.length) {
+    await db.collection("questions").insertMany(
+      questions.map((q) => {
+        const copy = { ...q, testId: insertedId.toHexString() };
+        delete copy._id; // each copy gets its own new id
+        return copy;
+      })
+    );
+  }
+  return json(201, { id: insertedId.toHexString(), questions: questions.length });
+});
+
+// ---- Admin: questions of a test -----------------------------------------------------
+
+const nextOrder = async (db, testId) => {
+  const last = await db.collection("questions").find({ testId }, { projection: { order: 1 } }).sort({ order: -1 }).limit(1).toArray();
+  return (last[0]?.order || 0) + 1;
+};
+
+route("POST", "/admin/tests/([^/]+)/questions", "admin", async ({ db, params, body }) => {
+  const test = await findTest(db, params[0]);
+  const testId = test._id.toHexString();
+  const q = v.question(await body());
+  if ((await db.collection("questions").countDocuments({ testId })) >= MAX_IMPORT_QUESTIONS) {
+    throw new HttpError(409, `This test is full (max ${MAX_IMPORT_QUESTIONS} questions).`);
+  }
+  const { insertedId } = await db.collection("questions").insertOne({ ...q, testId, order: await nextOrder(db, testId) });
+  return json(201, { id: insertedId.toHexString() });
+});
+
+route("POST", "/admin/tests/([^/]+)/questions/swap", "admin", async ({ db, params, body }) => {
+  const test = await findTest(db, params[0]);
   const input = v.object(await body());
   const a = v.objectId(input.a, "first question");
   const b = v.objectId(input.b, "second question");
-  const docs = await db.collection("questions").find({ _id: { $in: [a, b] } }, { projection: { order: 1 } }).toArray();
-  if (docs.length !== 2) throw new HttpError(404, "Question not found.");
+  // Both must belong to THIS test.
+  const docs = await db
+    .collection("questions")
+    .find({ _id: { $in: [a, b] }, testId: test._id.toHexString() }, { projection: { order: 1 } })
+    .toArray();
+  if (docs.length !== 2) throw new HttpError(404, "Question not found in this test.");
   const [first, second] = docs;
   await db.collection("questions").bulkWrite([
     { updateOne: { filter: { _id: first._id }, update: { $set: { order: second.order } } } },
@@ -311,7 +455,9 @@ route("POST", "/admin/questions/swap", "admin", async ({ db, body }) => {
   return json(200, { ok: true });
 });
 
-route("POST", "/admin/questions/import", "admin", async ({ db, body }) => {
+route("POST", "/admin/tests/([^/]+)/questions/import", "admin", async ({ db, params, body }) => {
+  const test = await findTest(db, params[0]);
+  const testId = test._id.toHexString();
   const input = v.object(await body(1_000_000));
   if (!["replace", "append"].includes(input.mode)) throw new HttpError(400, "Mode must be replace or append.");
   if (!Array.isArray(input.questions) || !input.questions.length) {
@@ -334,9 +480,14 @@ route("POST", "/admin/questions/import", "admin", async ({ db, body }) => {
 
   const questions = db.collection("questions");
   let start = 1;
-  if (input.mode === "replace") await questions.deleteMany({});
-  else start = await nextOrder(db);
-  await questions.insertMany(cleaned.map((q, i) => ({ ...q, order: start + i })));
+  if (input.mode === "replace") await questions.deleteMany({ testId });
+  else {
+    start = await nextOrder(db, testId);
+    if (start - 1 + cleaned.length > MAX_IMPORT_QUESTIONS) {
+      throw new HttpError(409, `That would exceed ${MAX_IMPORT_QUESTIONS} questions in this test.`);
+    }
+  }
+  await questions.insertMany(cleaned.map((q, i) => ({ ...q, testId, order: start + i })));
   return json(200, { imported: cleaned.length });
 });
 
@@ -354,32 +505,29 @@ route("DELETE", "/admin/questions/([^/]+)", "admin", async ({ db, params }) => {
   return json(200, { ok: true });
 });
 
-route("GET", "/admin/config", "admin", async ({ db }) => json(200, { config: await loadConfig(db) }));
+// ---- Admin: attempts ------------------------------------------------------------------
 
-route("PUT", "/admin/config", "admin", async ({ db, body }) => {
-  const input = v.object(await body());
-  if (typeof input.active !== "boolean") throw new HttpError(400, "Active must be true or false.");
-  const config = {
-    title: v.text(input.title, "Title", { max: 120 }),
-    passPercent: v.integer(input.passPercent, "Pass mark", { min: 1, max: 100 }),
-    active: input.active,
-  };
-  await db.collection("config").updateOne({ _id: "test" }, { $set: config }, { upsert: true });
-  return json(200, { config });
-});
-
-// Every attempt with its warnings. The admin panel polls this for live updates.
-route("GET", "/admin/attempts", "admin", async ({ db }) => {
+// Every attempt with its warnings, optionally for one test (?testId=). The admin
+// panel polls this for live updates. `answerKeys` maps question id -> correct letter
+// for the questions that still exist, so the panel can colour each answer.
+route("GET", "/admin/attempts", "admin", async ({ db, req }) => {
+  const filter = new URL(req.url).searchParams.get("testId");
   const rows = await db
     .collection("attempts")
     .aggregate([
+      { $match: filter ? { testId: v.hexId(filter, "test") } : {} },
       { $sort: { startedAt: -1 } },
       { $limit: 500 },
       { $lookup: { from: "violations", localField: "_id", foreignField: "attemptId", as: "violations" } },
       { $project: { sid: 0 } },
     ])
     .toArray();
+  const testIds = [...new Set(rows.map((a) => a.testId).filter(Boolean))];
+  const keyed = testIds.length
+    ? await db.collection("questions").find({ testId: { $in: testIds } }, { projection: { answer: 1 } }).toArray()
+    : [];
   return json(200, {
+    answerKeys: Object.fromEntries(keyed.map((q) => [q._id.toHexString(), q.answer])),
     attempts: rows.map(({ _id, violations, ...a }) => ({
       ...a,
       id: _id.toHexString(),

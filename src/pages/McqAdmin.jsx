@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { friendlyError } from "../utils/mcqApi";
 import {
@@ -6,28 +6,25 @@ import {
   adminMe,
   adminSignIn,
   adminSignOut,
-  fetchConfig,
-  fetchQuestions,
+  fetchTests,
   hasAdminToken,
 } from "../utils/mcqAdminApi";
 import AccessPanel from "../components/mcq/AccessPanel";
 import AttemptsPanel from "../components/mcq/AttemptsPanel";
-import QuestionsPanel from "../components/mcq/QuestionsPanel";
-import SettingsPanel from "../components/mcq/SettingsPanel";
+import TestsPanel from "../components/mcq/TestsPanel";
 
-const TABS = ["Attempts", "Questions", "Settings", "Access"];
+const TABS = ["Tests", "Attempts", "Access"];
 
 const McqAdmin = () => {
   // checking | login | ready
   const [status, setStatus] = useState(hasAdminToken() ? "checking" : "login");
-  const [tab, setTab] = useState("Attempts");
+  const [tab, setTab] = useState("Tests");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [questions, setQuestions] = useState([]);
-  const [config, setConfig] = useState(null);
+  const [tests, setTests] = useState(null); // null until first loaded
   const [loadError, setLoadError] = useState("");
 
   // Resume an existing admin session, if the token is still valid.
@@ -45,13 +42,11 @@ const McqAdmin = () => {
     return () => window.removeEventListener(ADMIN_EXPIRED_EVENT, expired);
   }, []);
 
-  // Questions and settings change only when an admin edits them, so they are
-  // loaded once and again after each change (the attempts list polls instead).
+  // The list of tests changes only when an admin edits it, so it is loaded once and
+  // again after each change (the attempts list polls instead).
   const loadData = useCallback(async () => {
     try {
-      const [loadedQuestions, loadedConfig] = await Promise.all([fetchQuestions(), fetchConfig()]);
-      setQuestions(loadedQuestions);
-      setConfig(loadedConfig);
+      setTests(await fetchTests());
       setLoadError("");
     } catch (err) {
       setLoadError(friendlyError(err));
@@ -62,11 +57,6 @@ const McqAdmin = () => {
   useEffect(() => {
     if (ready) loadData();
   }, [ready, loadData]);
-
-  const answerKeys = useMemo(
-    () => Object.fromEntries(questions.map((q) => [q.id, q.answer])),
-    [questions]
-  );
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -85,8 +75,7 @@ const McqAdmin = () => {
 
   const handleLogout = () => {
     adminSignOut();
-    setQuestions([]);
-    setConfig(null);
+    setTests(null);
     setStatus("login");
   };
 
@@ -164,11 +153,10 @@ const McqAdmin = () => {
 
       {loadError && <p className="bg-red-600 text-white rounded p-3 mb-3 text-sm">{loadError}</p>}
 
-      {tab === "Attempts" && <AttemptsPanel questions={questions} answerKeys={answerKeys} />}
-      {tab === "Questions" && <QuestionsPanel questions={questions} onChanged={loadData} />}
+      {tests === null && !loadError && <p>Loading…</p>}
+      {tests !== null && tab === "Tests" && <TestsPanel tests={tests} onChanged={loadData} />}
+      {tests !== null && tab === "Attempts" && <AttemptsPanel tests={tests} />}
       {tab === "Access" && <AccessPanel />}
-      {tab === "Settings" &&
-        (config ? <SettingsPanel config={config} onSaved={loadData} /> : <p>Loading settings…</p>)}
     </section>
   );
 };

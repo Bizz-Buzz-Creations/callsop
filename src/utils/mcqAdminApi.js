@@ -93,34 +93,51 @@ export const parseQuestionJson = (text) => {
   return questions;
 };
 
-// ---- Questions --------------------------------------------------------------------
+// ---- Tests ------------------------------------------------------------------------
 
-export const fetchQuestions = async () => (await adminCall("/admin/questions")).questions;
+// Every test with its question and attempt counts.
+export const fetchTests = async () => (await adminCall("/admin/tests")).tests;
 
-// id = null creates a new question (appended); otherwise updates in place.
-export const saveQuestion = (id, q) =>
+// fields: { title, description, passPercent, active } -> { id }
+export const createTest = (fields) => adminCall("/admin/tests", { method: "POST", body: fields });
+
+// One test with all its questions (and their answers): { test, questions }.
+export const fetchTest = (testId) => adminCall(`/admin/tests/${testId}`);
+
+export const updateTest = (testId, fields) =>
+  adminCall(`/admin/tests/${testId}`, { method: "PUT", body: fields });
+
+// Also deletes the test's questions, attempts and warnings.
+export const deleteTest = (testId) => adminCall(`/admin/tests/${testId}`, { method: "DELETE" });
+
+// A closed copy with all questions -> { id, questions }.
+export const duplicateTest = (testId) =>
+  adminCall(`/admin/tests/${testId}/duplicate`, { method: "POST", body: {} });
+
+// ---- Questions of a test ------------------------------------------------------------
+
+// id = null creates a new question at the end of the test; otherwise updates in place.
+export const saveQuestion = (testId, id, q) =>
   id
     ? adminCall(`/admin/questions/${id}`, { method: "PUT", body: q })
-    : adminCall("/admin/questions", { method: "POST", body: q });
+    : adminCall(`/admin/tests/${testId}/questions`, { method: "POST", body: q });
 
 export const deleteQuestion = (id) => adminCall(`/admin/questions/${id}`, { method: "DELETE" });
 
-export const swapQuestionOrder = (a, b) =>
-  adminCall("/admin/questions/swap", { method: "POST", body: { a: a.id, b: b.id } });
+export const swapQuestionOrder = (testId, a, b) =>
+  adminCall(`/admin/tests/${testId}/questions/swap`, { method: "POST", body: { a: a.id, b: b.id } });
 
-// mode "replace" removes every existing question first; "append" adds after them.
-export const importQuestions = (questions, mode) =>
-  adminCall("/admin/questions/import", { method: "POST", body: { mode, questions } });
+// mode "replace" removes this test's questions first; "append" adds after them.
+export const importQuestions = (testId, questions, mode) =>
+  adminCall(`/admin/tests/${testId}/questions/import`, { method: "POST", body: { mode, questions } });
 
-// ---- Settings and attempts --------------------------------------------------------
+// ---- Attempts -------------------------------------------------------------------------
 
-export const fetchConfig = async () => (await adminCall("/admin/config")).config;
+// All attempts, or those of one test: { attempts, answerKeys }.
+export const fetchAttempts = (testId) =>
+  adminCall(`/admin/attempts${testId ? `?testId=${testId}` : ""}`);
 
-export const saveConfig = (config) => adminCall("/admin/config", { method: "PUT", body: config });
-
-export const fetchAttempts = async () => (await adminCall("/admin/attempts")).attempts;
-
-// Deleting an attempt also frees that employee ID's attempt allowance.
+// Deleting an attempt removes its result and warnings.
 export const deleteAttempt = (attemptId) =>
   adminCall(`/admin/attempts/${attemptId}`, { method: "DELETE" });
 

@@ -22,7 +22,7 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
   };
   const admin = await mk("admin");
   const agent = await mk("agent");
-  const startAs = async (page, name) => { await page.getByLabel("Your name").fill(name); await page.getByRole("button", { name: "Start Test" }).click(); };
+  const TITLE = "Call Disposition Assessment";
   let order; // bank index of each question, in the order currently shown
 
   await group("admin login", async () => {
@@ -50,9 +50,17 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     ok("real admin gets the panel", true);
   });
 
-  await group("admin questions", async () => {
-    await admin.getByRole("button", { name: "Questions", exact: true }).click();
-    await admin.getByText("No questions yet").waitFor();
+  await group("admin creates a test and its questions", async () => {
+    await admin.getByText("No tests yet.").waitFor();
+    ok("the Tests tab starts empty", true);
+    await admin.getByRole("button", { name: "New test" }).click();
+    await admin.getByLabel("Title").fill(TITLE);
+    await admin.getByLabel("Description (optional)").fill("Practise choosing the right disposition.");
+    await admin.getByLabel("Pass mark (%)").fill("70");
+    await admin.getByRole("button", { name: "Create test" }).click();
+    await admin.getByRole("heading", { name: "Test details" }).waitFor();
+    ok("creating a test opens its editor straight away", (await admin.getByLabel("Title").inputValue()) === TITLE);
+    await admin.getByText("No questions in this test yet").waitFor();
     await admin.getByRole("button", { name: "Load built-in 30 questions" }).click();
     await admin.getByRole("button", { name: "Replace all" }).click();
     await admin.getByText("Imported 30 question(s).").waitFor({ timeout: 15000 });
@@ -61,11 +69,11 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     ok("first question + correct answer shown", firstText.includes("automated voice message") && (await admin.locator("li.text-green-600").count()) === 30);
 
     await admin.getByRole("button", { name: "Import from JSON" }).click();
-    await admin.locator("textarea").fill('{"questions":[{"question":"x","options":["only one"],"answer":"Z"}]}');
+    await admin.getByPlaceholder("Paste questions JSON here").fill('{"questions":[{"question":"x","options":["only one"],"answer":"Z"}]}');
     await admin.getByRole("button", { name: "Append to existing" }).click();
     await admin.getByText("Question 1:", { exact: false }).waitFor();
     ok("invalid JSON import rejected with reasons", (await admin.getByText("needs 2 to 6 options").count()) > 0);
-    await admin.locator("textarea").fill('[{"section":"Extra","question":"Imported question?","options":["Yes","No"],"answer":"B"}]');
+    await admin.getByPlaceholder("Paste questions JSON here").fill('[{"section":"Extra","question":"Imported question?","options":["Yes","No"],"answer":"B"}]');
     await admin.getByRole("button", { name: "Append to existing" }).click();
     await admin.getByText("Imported 1 question(s).").waitFor({ timeout: 15000 });
     await admin.getByText("31 question(s)").first().waitFor({ timeout: 15000 });
@@ -101,27 +109,33 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     await admin.screenshot({ path: path.join(OUT, "mcq-admin-questions.png") });
   });
 
-  await group("admin settings", async () => {
-    await admin.getByRole("button", { name: "Settings", exact: true }).click();
+  await group("admin test details", async () => {
     await admin.getByLabel("Pass mark (%)").fill("70");
-    await admin.getByRole("button", { name: "Save", exact: true }).click();
+    await admin.getByRole("button", { name: "Save details" }).click();
     await admin.getByText("Saved.").waitFor();
-    ok("settings saved", true);
+    ok("details saved", true);
     await admin.getByLabel("Pass mark (%)").fill("0");
-    await admin.getByRole("button", { name: "Save", exact: true }).click();
+    await admin.getByRole("button", { name: "Save details" }).click();
     await admin.waitForTimeout(600);
     ok("invalid pass mark (0) blocked, nothing saved", (await admin.getByText("Saved.").count()) === 0);
     await admin.getByLabel("Pass mark (%)").fill("70");
-    await admin.getByRole("button", { name: "Save", exact: true }).click();
+    await admin.getByRole("button", { name: "Save details" }).click();
     await admin.getByText("Saved.").waitFor();
     await admin.waitForTimeout(800);
     ok("form keeps its message/values after the save is reloaded", (await admin.getByText("Saved.").count()) === 1 && (await admin.getByLabel("Pass mark (%)").inputValue()) === "70");
+    await admin.getByRole("button", { name: "← All tests" }).click();
     await admin.getByRole("button", { name: "Attempts", exact: true }).click();
     await admin.getByText("No attempts yet.").waitFor();
   });
 
   await group("agent takes the test", async () => {
     await agent.goto(`${BASE}/test`);
+    await agent.getByRole("heading", { name: "Tests", exact: true }).waitFor();
+    const card = agent.getByRole("article", { name: TITLE });
+    await card.waitFor();
+    ok("the test list shows the test with its description, size and pass mark", (await card.innerText()).includes("Practise choosing") && (await card.innerText()).includes("30 questions") && (await card.innerText()).includes("pass mark 70%"));
+    ok("it is marked 'Not attempted yet'", (await card.getByText("Not attempted yet").count()) === 1);
+    await card.getByRole("link", { name: "Start test" }).click();
     await agent.getByRole("button", { name: "Start Test" }).waitFor();
     ok("agent sees start screen with the admin's settings", (await agent.getByText("30 multiple-choice questions. Pass mark: 70%.").count()) === 1);
     ok("start screen asks for a name only (no employee ID)", (await agent.getByLabel("Your name").count()) === 1 && (await agent.locator("input").count()) === 1);
@@ -148,8 +162,8 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     await leave();
     await agent.getByText("you left the test window").waitFor();
     ok("agent sees the warning banner and the test continues", (await agent.locator("fieldset").count()) === 30);
-    await admin.getByText("Alice Agent (Test #1)").first().waitFor({ timeout: 10000 });
-    ok("admin got an alert naming the agent and test number", (await admin.getByText("Switched tab or minimised the window").count()) >= 1);
+    await admin.getByText(`Alice Agent (Attempt #1, ${TITLE})`).first().waitFor({ timeout: 10000 });
+    ok("admin got an alert naming the agent, attempt and test", (await admin.getByText("Switched tab or minimised the window").count()) >= 1);
     await agent.waitForTimeout(1200);
     await agent.evaluate(() => window.dispatchEvent(new Event("blur")));
     await admin.getByText("Opened another window or application").first().waitFor({ timeout: 10000 });
@@ -205,7 +219,7 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     await admin.getByText("27 / 30 (90%)").first().waitFor({ timeout: 10000 });
     ok("admin sees the score", true);
     const row = (await admin.locator("tbody tr").first().innerText()).replace(/\s+/g, " ");
-    ok("admin row: Alice Agent, test #1, completed, 2 warnings", /^Alice Agent #1 /.test(row) && row.includes("Completed") && / 2 /.test(row), row);
+    ok("admin row: Alice Agent, the test, attempt #1, completed, 2 warnings", row.startsWith(`Alice Agent ${TITLE} #1 `) && row.includes("Completed") && / 2 /.test(row), row);
   });
 
   await group("details, retake and admin delete", async () => {
@@ -215,7 +229,12 @@ const key = bank.map((q) => "ABCD".indexOf(q.answer));
     ok("answer chips: 3 red, 27 green", (await admin.locator("span.bg-red-600.text-xs").count()) === 3 && (await admin.locator("span.bg-green-600.text-xs").count()) === 27);
     await admin.screenshot({ path: path.join(OUT, "mcq-admin-attempts.png"), fullPage: true });
 
-    await agent.getByRole("button", { name: "Back to start" }).click();
+    await agent.getByRole("link", { name: "Back to all tests" }).click();
+    const doneCard = agent.getByRole("article", { name: TITLE });
+    await doneCard.waitFor();
+    ok("back on the list the test shows the last result and 'Take again'", (await doneCard.innerText()).includes("Last result: 27/30 (90%)") && (await doneCard.innerText()).includes("Passed") && (await doneCard.getByRole("link", { name: "Take again" }).count()) === 1);
+    await doneCard.getByRole("link", { name: "Take again" }).click();
+    await agent.getByRole("button", { name: "Start Test" }).waitFor();
     ok("the name is remembered for a retake", (await agent.getByLabel("Your name").inputValue()) === "Alice Agent");
     await agent.getByRole("button", { name: "Start Test" }).click();
     await agent.locator("fieldset").first().waitFor({ timeout: 10000 });

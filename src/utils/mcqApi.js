@@ -70,13 +70,19 @@ const agentCall = async (path, options) => {
   }
 };
 
-// ---- Test ------------------------------------------------------------------------
+// ---- Tests -----------------------------------------------------------------------
 
-export const loadTest = () => agentCall("/test");
+// Every test this browser can take, with its own progress on each.
+export const loadTests = async () => (await agentCall("/tests")).tests;
 
-export const findOpenAttempt = async () => (await agentCall("/attempt/open")).attempt;
+// One test and its questions (no answers): { test, questions }.
+export const loadTest = (testId) => agentCall(`/test/${testId}`);
 
-export const startAttempt = (name) => agentCall("/attempt/start", { method: "POST", body: { name } });
+// This browser's unfinished attempt in one test, or null.
+export const findOpenAttempt = async (testId) => (await agentCall(`/attempt/open?testId=${testId}`)).attempt;
+
+export const startAttempt = (name, testId) =>
+  agentCall("/attempt/start", { method: "POST", body: { name, testId } });
 
 export const saveAnswer = (attemptId, questionId, letter) =>
   agentCall(`/attempt/${attemptId}/answer`, { method: "PUT", body: { questionId, letter } });
@@ -86,3 +92,20 @@ export const logViolation = (attemptId, type) =>
 
 export const submitAttempt = (attemptId, answers) =>
   agentCall(`/attempt/${attemptId}/submit`, { method: "POST", body: { answers } });
+
+// The agent's name is remembered on this computer, so it is not retyped for each test.
+const NAME_KEY = "callsopAgentName";
+export const getSavedName = () => {
+  try {
+    return localStorage.getItem(NAME_KEY) || "";
+  } catch {
+    return "";
+  }
+};
+export const saveName = (name) => {
+  try {
+    localStorage.setItem(NAME_KEY, name);
+  } catch {
+    // ignore
+  }
+};

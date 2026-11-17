@@ -37,7 +37,7 @@ const OUT = os.tmpdir();
     ok("calculator route via navbar", page.url().endsWith("/calculator"));
     ok("calculator link active, home not", /bg-indigo-500/.test(await page.locator("nav a").nth(1).getAttribute("class")) && !/bg-indigo-500/.test(await page.locator("nav a").nth(0).getAttribute("class")));
     await page.locator("nav a", { hasText: "MCQ Test" }).click();
-    await page.getByRole("button", { name: "Start Test" }).waitFor();
+    await page.getByRole("heading", { name: "Tests", exact: true }).waitFor();
     ok("MCQ route via navbar", page.url().endsWith("/test"));
     await page.locator("nav a", { hasText: "Standard Call Procedure" }).click();
     await page.getByRole("heading", { name: "Standard Call Procedure" }).waitFor();

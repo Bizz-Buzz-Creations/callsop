@@ -12,7 +12,8 @@ import {
 
 const EMPTY = { id: null, section: "", question: "", options: ["", "", "", ""], answer: "A" };
 
-const QuestionsPanel = ({ questions, onChanged }) => {
+// The questions of ONE test (testId). `questions` and `onChanged` come from the editor.
+const QuestionsPanel = ({ testId, questions, onChanged }) => {
   const [editing, setEditing] = useState(null); // form state, or null
   const [importText, setImportText] = useState("");
   const [showImport, setShowImport] = useState(false);
@@ -71,7 +72,7 @@ const QuestionsPanel = ({ questions, onChanged }) => {
 
     const isNew = !editing.id;
     const ok = await run(
-      () => saveQuestion(editing.id, draft),
+      () => saveQuestion(testId, editing.id, draft),
       isNew ? "Question added." : "Question updated."
     );
     if (ok) setEditing(null);
@@ -84,7 +85,7 @@ const QuestionsPanel = ({ questions, onChanged }) => {
 
   const handleMove = (index, direction) => {
     const other = questions[index + direction];
-    if (other) run(() => swapQuestionOrder(questions[index], other), "Order updated.");
+    if (other) run(() => swapQuestionOrder(testId, questions[index], other), "Order updated.");
   };
 
   const handleImport = async (mode) => {
@@ -99,7 +100,7 @@ const QuestionsPanel = ({ questions, onChanged }) => {
         ? `Replace all ${questions.length} existing question(s) with these ${parsed.length}?`
         : `Add ${parsed.length} question(s) after the existing ones?`;
     if (!window.confirm(warning)) return;
-    const ok = await run(() => importQuestions(parsed, mode), `Imported ${parsed.length} question(s).`);
+    const ok = await run(() => importQuestions(testId, parsed, mode), `Imported ${parsed.length} question(s).`);
     if (ok) {
       setImportText("");
       setShowImport(false);
@@ -250,7 +251,7 @@ const QuestionsPanel = ({ questions, onChanged }) => {
       <div className="space-y-2">
         {questions.length === 0 && (
           <p className="text-gray-600">
-            No questions yet. Use “Load built-in 30 questions” or add your own.
+            No questions in this test yet. Use “Load built-in 30 questions” or add your own.
           </p>
         )}
         {questions.map((q, index) => (

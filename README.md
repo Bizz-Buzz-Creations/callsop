@@ -5,9 +5,18 @@ proctored MCQ test with an admin panel.
 
 ## MCQ test
 
-- **Agents** open `/test`, type their name (required) and press **Start Test**. No login.
-- **Admins** sign in at `/test/admin` (email + password) to add, edit, import and reorder
-  questions, change the pass mark, open/close the test, and watch results and warnings.
+- **Agents** click **MCQ Test** in the navbar (`/test`) and see every test the admin has
+  opened. Each card shows the size, pass mark and the agent's own status (not attempted, in
+  progress, last result). They pick one, type their name (required) and press **Start Test**.
+  No login. A test can also be opened directly at `/test/<id>`.
+- **Admins** sign in at `/test/admin` (username + password). The **Tests** tab creates as many
+  different tests as needed, each with its own title, description, pass mark, questions and
+  open/closed switch; tests can be duplicated or deleted (with their attempts). The
+  **Attempts** tab shows every attempt (filter by test) and live tab-switch warnings.
+- A test with no questions, or a closed test, is not offered to agents. An agent can keep one
+  running attempt per test and take several tests side by side.
+- Upgrading from the single-test version is automatic: on the first request the existing
+  questions and attempts move into one test (its title and pass mark are kept).
 
 How it is secured (all enforced on the server, in `netlify/api/`):
 
@@ -48,7 +57,7 @@ How it is secured (all enforced on the server, in `netlify/api/`):
    ```
    and type a password (4+ characters) at the prompt. The username can be anything. Run it
    again to reset a password.
-6. Open `/test/admin`, log in, then **Questions → Load built-in 30 questions → Replace all**.
+6. Open `/test/admin`, log in, **Tests → New test**, then in the test **Load built-in 30 questions → Replace all** (or add your own).
 
 ### Local development
 
