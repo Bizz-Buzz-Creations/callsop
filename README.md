@@ -20,12 +20,7 @@ How it is secured (all enforced on the server, in `netlify/api/`):
 - Admin passwords are stored hashed (scrypt). Login tokens are signed and expire after 8 hours.
   After 8 failed logins an email or IP is locked out for 15 minutes. All input is validated, so
   NoSQL-injection payloads are rejected.
-- The IP allowlist (`netlify/edge-functions/ip-filter.js`) is currently switched off, so the
-  API's own login, lockout and validation are the only gates. If you re-enable the allowlist it
-  also covers `/api`.
-
-The admin sees each test by the agent's name, a test number (#1, #2, …) and the start time.
-Retakes are unlimited; an admin can delete a test from the **Attempts** tab.
+- Site-wide IP access control is managed in the admin panel (see **IP access** below).
 
 ### One-time setup
 
@@ -69,6 +64,38 @@ live one.
 ### If the website and the API are on different domains
 Same-origin is the default and needs nothing. Otherwise set `ALLOWED_ORIGIN` (the website's
 origin) on the API and `VITE_API_BASE_URL` (the API's origin) when building the site.
+
+## IP access (who can open the site)
+
+An admin can restrict the whole site (SOP, calculator, test, API) to a list of IP addresses
+without touching code: **Test Admin Panel → Access**.
+
+- **Switch:** the filter starts **OFF** (everyone can open the site). Turn it **ON** to allow only
+  the listed IPs.
+- **List:** add an IP (`203.0.113.7`) or a range (`203.0.113.0/24`), with a label and an optional
+  expiry (good for home or mobile IPs that change). IPv6 works too.
+- **"Add my IP"** adds the address you are connecting from.
+- **No lock-out:** the switch refuses to turn ON unless your own IP is allowed, and the panel will
+  not delete the rule that is keeping you in. Ranges wide enough to let in a large part of the
+  internet (such as `0.0.0.0/0`) are refused.
+- **Always allowed:** the office IPs in `netlify/api/access.js` (and any in the
+  `ALWAYS_ALLOWED_IPS` setting) can always get in, even if the list is empty or the database is
+  down, so the panel can always be opened to fix things.
+- A blocked visitor sees "Access Denied" and their own IP address, to send to an admin.
+
+How it works: `netlify/edge-functions/ip-filter.js` runs before every request. It reads the list
+from the API (`/api/edge/access`, protected by the `EDGE_SECRET` setting) and remembers it for a
+minute, so a change takes effect within about a minute.
+
+**If the database is down:** the last list it read keeps being used (for up to 24 hours), so listed
+IPs still get in and unlisted ones stay out. An edge server that has just started during an outage
+has nothing remembered and lets in only the always-allowed IPs. Anything that must never be locked
+out belongs in `ALWAYS_ALLOWED_IPS`.
+
+**To activate it**, add one setting in Netlify (Site configuration → Environment variables):
+`EDGE_SECRET` = a long random string (`openssl rand -base64 48`). Until it exists the filter does
+nothing, exactly as before. Optional: `ALWAYS_ALLOWED_IPS` = comma-separated IPs or ranges.
+Then deploy, open **Access**, add your IPs, and turn the switch on.
 
 ## Scripts
 

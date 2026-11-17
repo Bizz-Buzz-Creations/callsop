@@ -11,9 +11,11 @@ are never touched.
 | Suite | What it checks |
 |---|---|
 | `api.test.mjs` | The API against a real MongoDB: the answer key never reaches agents, scoring, access control, NoSQL injection, login lockout, forged/expired tokens, concurrency |
+| `access.test.mjs` | IP allowlist: shared IP code, admin routes, and the real edge function against the real API (switch off/on, built-in IPs, expiry, spoofing, database-down behaviour) |
 | `app.e2e.cjs` | SOP wizard, report, rebuttals dialog, calculator, navigation (Playwright) |
 | `mcq.e2e.cjs` | MCQ test and admin panel end to end |
 | `mcq-extra.e2e.cjs` | Two agents at once, phone width, closed test, admin sessions |
+| `access.e2e.cjs` | The admin Access tab: add/remove IPs, lock-out protection, ON/OFF |
 
 ## Requirements
 - `playwright-core` with a Chromium. It is found in `~/.cache/ms-playwright`, or set

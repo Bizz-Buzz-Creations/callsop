@@ -10,11 +10,12 @@ import {
   fetchQuestions,
   hasAdminToken,
 } from "../utils/mcqAdminApi";
+import AccessPanel from "../components/mcq/AccessPanel";
 import AttemptsPanel from "../components/mcq/AttemptsPanel";
 import QuestionsPanel from "../components/mcq/QuestionsPanel";
 import SettingsPanel from "../components/mcq/SettingsPanel";
 
-const TABS = ["Attempts", "Questions", "Settings"];
+const TABS = ["Attempts", "Questions", "Settings", "Access"];
 
 const McqAdmin = () => {
   // checking | login | ready
@@ -165,6 +166,7 @@ const McqAdmin = () => {
 
       {tab === "Attempts" && <AttemptsPanel questions={questions} answerKeys={answerKeys} />}
       {tab === "Questions" && <QuestionsPanel questions={questions} onChanged={loadData} />}
+      {tab === "Access" && <AccessPanel />}
       {tab === "Settings" &&
         (config ? <SettingsPanel config={config} onSaved={loadData} /> : <p>Loading settings…</p>)}
     </section>

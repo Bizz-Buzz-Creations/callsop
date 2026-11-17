@@ -9,10 +9,13 @@
 //  - Admin routes need an admin token and re-check that the admin still exists.
 import { ObjectId } from "mongodb";
 import { getDb } from "./db.js";
+import { alwaysAllowedEntries, alwaysAllowedRules } from "./access.js";
 import { ConfigError, HttpError, json, readJson } from "./http.js";
+import { addressToString, isTooBroad, matchesAny, parseAddress, parseRule, ruleToString } from "./ip.js";
 import {
   burnPasswordCheck,
   newSessionId,
+  safeEqual,
   signToken,
   verifyPassword,
   verifyToken,
@@ -393,6 +396,118 @@ route("DELETE", "/admin/attempts/([^/]+)", "admin", async ({ db, params }) => {
   const res = await db.collection("attempts").deleteOne({ _id: attemptId });
   if (!res.deletedCount) throw new HttpError(404, "Attempt not found.");
   return json(200, { ok: true });
+});
+
+// ---- IP access control -----------------------------------------------------------
+// The allowlist is edited here (admin panel) and read by the edge function
+// (netlify/edge-functions/ip-filter.js) through /edge/access. The built-in IPs
+// in access.js are always allowed, so the panel can always be reached.
+
+const MAX_IP_RULES = 500;
+const isActiveRule = (rule, now = new Date()) => !rule.expiresAt || rule.expiresAt > now;
+
+const loadAccess = async (db) => {
+  const [setting, rules] = await Promise.all([
+    db.collection("config").findOne({ _id: "access" }),
+    db.collection("ipRules").find({}).sort({ createdAt: 1 }).toArray(),
+  ]);
+  return { enabled: setting?.enabled === true, rules };
+};
+
+const publicRule = (rule, now = new Date()) => ({
+  id: rule._id.toHexString(),
+  value: rule.value,
+  label: rule.label || "",
+  createdAt: rule.createdAt,
+  createdBy: rule.createdBy || "",
+  expiresAt: rule.expiresAt || null,
+  expired: !isActiveRule(rule, now),
+});
+
+// Would this IP get in, given these admin rules (plus the built-in ones)?
+const ipIsAllowed = (ip, rules) => {
+  const allowed = [
+    ...alwaysAllowedRules(process.env.ALWAYS_ALLOWED_IPS),
+    ...rules.filter((r) => isActiveRule(r)).map((r) => parseRule(r.value)).filter(Boolean),
+  ];
+  return matchesAny(ip, allowed);
+};
+
+const displayIp = (ip) => {
+  const parsed = parseAddress(ip);
+  return parsed ? addressToString(parsed) : String(ip);
+};
+
+route("GET", "/admin/access", "admin", async ({ db, ip }) => {
+  const { enabled, rules } = await loadAccess(db);
+  const secret = process.env.EDGE_SECRET || "";
+  return json(200, {
+    enabled,
+    myIp: displayIp(ip),
+    myIpAllowed: ipIsAllowed(ip, rules),
+    alwaysAllowed: alwaysAllowedEntries(process.env.ALWAYS_ALLOWED_IPS),
+    // The edge function needs EDGE_SECRET; without it the filter cannot run.
+    edgeConfigured: secret.length >= 20,
+    rules: rules.map((r) => publicRule(r)),
+  });
+});
+
+route("PUT", "/admin/access", "admin", async ({ db, body, ip }) => {
+  const input = v.object(await body());
+  if (typeof input.enabled !== "boolean") throw new HttpError(400, "Enabled must be true or false.");
+  if (input.enabled) {
+    const { rules } = await loadAccess(db);
+    if (!ipIsAllowed(ip, rules)) {
+      throw new HttpError(
+        409,
+        `Your current IP (${displayIp(ip)}) is not allowed yet. Add it first, or turning the filter on would lock you out of this panel.`
+      );
+    }
+  }
+  await db.collection("config").updateOne({ _id: "access" }, { $set: { enabled: input.enabled } }, { upsert: true });
+  return json(200, { enabled: input.enabled });
+});
+
+route("POST", "/admin/access/rules", "admin", async ({ db, body, auth }) => {
+  const input = v.object(await body());
+  const rule = parseRule(v.text(input.value, "IP address", { max: 64 }));
+  if (!rule) throw new HttpError(400, "That is not a valid IP address or range (examples: 203.0.113.7 or 203.0.113.0/24).");
+  if (isTooBroad(rule)) {
+    throw new HttpError(400, "That range is far too wide and would let in a large part of the internet. Use a narrower range.");
+  }
+  const label = input.label == null || input.label === "" ? "" : v.text(input.label, "Label", { max: 80 });
+  let expiresAt = null;
+  if (input.hours != null) {
+    expiresAt = new Date(Date.now() + v.integer(input.hours, "Hours", { min: 1, max: 24 * 365 }) * 3600 * 1000);
+  }
+
+  const rules = db.collection("ipRules");
+  const value = ruleToString(rule);
+  if (await rules.countDocuments({}) >= MAX_IP_RULES) throw new HttpError(409, `The list is full (max ${MAX_IP_RULES}).`);
+  if (await rules.findOne({ value })) throw new HttpError(409, `${value} is already in the list.`);
+  const { insertedId } = await rules.insertOne({ value, label, createdAt: new Date(), createdBy: auth.email, expiresAt });
+  return json(201, { id: insertedId.toHexString(), value });
+});
+
+route("DELETE", "/admin/access/rules/([^/]+)", "admin", async ({ db, params, ip }) => {
+  const id = v.objectId(params[0], "rule");
+  const { enabled, rules } = await loadAccess(db);
+  if (!rules.some((r) => r._id.equals(id))) throw new HttpError(404, "Rule not found.");
+  // Do not let an admin delete the rule that is keeping them in.
+  if (enabled && !ipIsAllowed(ip, rules.filter((r) => !r._id.equals(id)))) {
+    throw new HttpError(409, `Removing this would lock you out (your IP ${displayIp(ip)} is allowed only by it). Turn the filter off first.`);
+  }
+  await db.collection("ipRules").deleteOne({ _id: id });
+  return json(200, { ok: true });
+});
+
+// Read by the edge function only, proven by a shared secret header.
+route("GET", "/edge/access", null, async ({ req, db }) => {
+  const secret = process.env.EDGE_SECRET || "";
+  if (secret.length < 20) throw new HttpError(503, "EDGE_SECRET is not set (needs 20+ characters).");
+  if (!safeEqual(req.headers.get("x-edge-secret") || "", secret)) throw new HttpError(401, "Not allowed.");
+  const { enabled, rules } = await loadAccess(db);
+  return json(200, { enabled, rules: rules.filter((r) => isActiveRule(r)).map((r) => r.value) });
 });
 
 // ---- Dispatcher -----------------------------------------------------------------
