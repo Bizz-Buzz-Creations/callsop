@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createTest, deleteTest, duplicateTest } from "../../utils/mcqAdminApi";
+import { createTest, deleteTest, duplicateTest, fetchTests } from "../../utils/mcqAdminApi";
 import TestEditor from "./TestEditor";
 
 // All tests: create, open (to edit), duplicate and delete.
@@ -21,6 +21,9 @@ const TestsPanel = ({ tests, onChanged }) => {
       return result;
     } catch (err) {
       notify(err.message || String(err), true);
+      // The action may have failed because the list on screen is out of date (for example
+      // the test was already deleted by someone else): show the real list again.
+      await onChanged().catch(() => {});
       return undefined;
     } finally {
       setBusy(false);
@@ -46,9 +49,16 @@ const TestsPanel = ({ tests, onChanged }) => {
   };
 
   const handleDelete = async (test) => {
-    const detail = `${test.questionCount} question(s) and ${test.attemptCount} attempt(s)`;
-    if (!window.confirm(`Delete "${test.title}" together with its ${detail}? This cannot be undone.`)) return;
-    await run(() => deleteTest(test.id), `Deleted "${test.title}".`);
+    // The counts in the table can be minutes old; the warning must show the real ones.
+    let current = test;
+    try {
+      current = (await fetchTests()).find((t) => t.id === test.id) || test;
+    } catch {
+      // keep the counts on screen
+    }
+    const detail = `${current.questionCount} question(s) and ${current.attemptCount} attempt(s)`;
+    if (!window.confirm(`Delete "${current.title}" together with its ${detail}? This cannot be undone.`)) return;
+    await run(() => deleteTest(test.id), `Deleted "${current.title}".`);
   };
 
   const handleDuplicate = async (test) => {
@@ -62,6 +72,7 @@ const TestsPanel = ({ tests, onChanged }) => {
         testId={selectedId}
         onBack={() => {
           setSelectedId(null);
+          setMessage({ text: "", error: false }); // messages from before the editor are out of date
           onChanged();
         }}
         onChanged={onChanged}

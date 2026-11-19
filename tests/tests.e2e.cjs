@@ -1,6 +1,6 @@
 // Multiple tests, end to end in real browsers: the admin creates different tests,
 // agents pick one from the list and take it. See tests/README.md.
-const { BASE, createRunner, launch, reset, seedAdmin, requireTestApi, adminToken, simpleQuestions, updateTest, withDb, api, ROOT } = require("./lib.cjs");
+const { BASE, createRunner, launch, reset, seedAdmin, requireTestApi, adminToken, createTest, importQuestions, simpleQuestions, updateTest, withDb, api, ROOT } = require("./lib.cjs");
 
 const { ok, group, finish } = createRunner();
 
@@ -12,11 +12,40 @@ const { ok, group, finish } = createRunner();
 
   const browser = await launch();
   const errors = [];
-  const mk = async (label, width = 1200) => {
-    const page = await (await browser.newContext({ viewport: { width, height: 900 } })).newPage();
+  const mk = async (label, width = 1200, initScript) => {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    if (initScript) await context.addInitScript(initScript);
+    const page = await context.newPage();
     page.on("pageerror", (e) => errors.push(`${label}: ${e}`));
-    page.on("dialog", (d) => d.accept());
+    page.on("response", (r) => { if (r.status() >= 500) errors.push(`${label}: HTTP ${r.status()} ${r.url()}`); });
+    // Every confirm() is recorded; page.dialogAction decides whether it is accepted or cancelled.
+    page.dialogMessages = [];
+    page.dialogAction = "accept";
+    page.on("dialog", (d) => {
+      page.dialogMessages.push(d.message());
+      return page.dialogAction === "accept" ? d.accept() : d.dismiss();
+    });
     return page;
+  };
+  // A new test with n simple questions (every correct answer is B), made through the API.
+  const mkTest = async (title, n = 3, fields = {}) => {
+    const id = await createTest(tok, { title, passPercent: 50, ...fields });
+    await importQuestions(tok, id, simpleQuestions(n, `${title.slice(0, 4).replace(/\W/g, "")}-`));
+    return id;
+  };
+  // Simulates the agent leaving the tab/window (real tab switches do not fire in automation).
+  const leave = (page) => page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("blur"));
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+  });
+  const loginOn = async (page) => {
+    await page.goto(`${BASE}/test/admin`);
+    await page.getByLabel("Username").fill("boss@example.com");
+    await page.getByLabel("Password").fill("correct-horse-1");
+    await page.getByRole("button", { name: "Log in" }).click();
+    await page.getByRole("heading", { name: "Test Admin Panel" }).waitFor();
   };
   const admin = await mk("admin");
   const agent = await mk("agent");
@@ -213,8 +242,11 @@ const { ok, group, finish } = createRunner();
     await admin.locator("#attempts-filter").selectOption({ label: "Strict exam" });
     await admin.getByText("1 attempt(s)").waitFor({ timeout: 10000 });
     ok("filtering by test shows only its attempts", (await admin.locator("tbody tr").count()) === 1 && (await admin.locator("tbody tr").first().innerText()).includes("Strict exam"));
+    await admin.locator("tbody tr").first().getByText("Completed").waitFor({ timeout: 10000 });
     await admin.locator("tbody tr").first().getByRole("button", { name: "Details" }).click();
-    ok("answer chips: 3 green, 1 red", (await admin.locator("span.bg-green-600.text-xs").count()) === 3 && (await admin.locator("span.bg-red-600.text-xs").count()) === 1);
+    await admin.getByText("Answers", { exact: true }).waitFor();
+    const chipInfo = await admin.locator("tbody span.text-xs").evaluateAll((els) => els.map((e) => `${e.innerText}:${/bg-green-600/.test(e.className) ? "green" : /bg-red-600/.test(e.className) ? "red" : "grey"}`));
+    ok("answer chips: 3 green, 1 red", chipInfo.filter((c) => c.endsWith("green")).length === 3 && chipInfo.filter((c) => c.endsWith("red")).length === 1, JSON.stringify(chipInfo));
     await admin.locator("#attempts-filter").selectOption({ label: "All tests" });
     await admin.getByText("3 attempt(s)").waitFor({ timeout: 10000 });
     ok("'All tests' shows everything again", true);
@@ -359,6 +391,319 @@ const { ok, group, finish } = createRunner();
     await goList(legacy);
     ok("agents see it on the list", (await cardTitles(legacy)).includes("Old single test"));
     await withDb((db) => db.collection("questions").deleteMany({}));
+  });
+
+
+  await group("live alerts reach the admin on every tab and under any filter", async () => {
+    const id = await mkTest("Alert test", 3);
+    await admin.goto(`${BASE}/test/admin`);
+    await admin.getByRole("button", { name: "New test" }).waitFor(); // the Tests tab
+    const zed = await mk("zed");
+    await zed.goto(`${BASE}/test/${id}`);
+    await startAs(zed, "Zed Agent");
+    await zed.locator("fieldset").first().waitFor();
+    await leave(zed);
+    await zed.getByText("you left the test window").waitFor();
+    await admin.getByRole("alert").filter({ hasText: /Zed Agent \(Attempt #\d+, Alert test\)/ }).waitFor({ timeout: 12000 });
+    ok("a warning shows as a red alert while the admin is on the Tests tab", true);
+
+    await admin.getByRole("button", { name: "Attempts", exact: true }).click();
+    await admin.locator("#attempts-filter").selectOption({ label: "Old single test" }); // a test Zed is NOT in
+    await zed.waitForTimeout(1200);
+    await leave(zed);
+    await admin.waitForFunction(() => document.querySelectorAll("[role=alert]").length >= 2, null, { timeout: 12000 });
+    ok("...and while the table is filtered to a different test", true);
+
+    await admin.getByRole("button", { name: "Access", exact: true }).click();
+    await zed.waitForTimeout(1200);
+    await leave(zed);
+    await admin.waitForFunction(() => document.querySelectorAll("[role=alert]").length >= 3, null, { timeout: 12000 });
+    ok("...and on the Access tab", true);
+
+    await admin.getByRole("alert").first().getByRole("button", { name: "Dismiss" }).click();
+    ok("an alert can be dismissed", (await admin.getByRole("alert").count()) === 2);
+    await admin.getByRole("button", { name: "Attempts", exact: true }).click();
+    await admin.locator("#attempts-filter").selectOption({ label: "All tests" });
+    const zedRow = admin.locator("tbody tr", { hasText: "Zed Agent" });
+    await zedRow.waitFor();
+    ok("the table shows Zed's attempt in its test with 3 warnings", (await zedRow.first().innerText()).replace(/\s+/g, " ").includes("Alert test") && (await zedRow.first().locator("span.rounded-full").innerText()) === "3");
+  });
+
+  await group("the admin replaces a test's questions while agents are in the middle of it", async () => {
+    const id = await mkTest("Replace me", 3);
+    const a3 = await mk("a3");
+    const a4 = await mk("a4");
+    for (const [page, name] of [[a3, "Ann Three"], [a4, "Ann Four"]]) {
+      await page.goto(`${BASE}/test/${id}`);
+      await startAs(page, name);
+      await page.locator("fieldset").first().waitFor();
+      await page.locator("fieldset").first().locator('input[type="radio"]').nth(1).check();
+      await page.getByText("Answered 1 / 3").waitFor();
+    }
+    await admin.goto(`${BASE}/test/admin`);
+    await row("Replace me").getByRole("button", { name: "Edit" }).click();
+    await admin.getByRole("heading", { name: "Test details" }).waitFor();
+    await admin.getByRole("button", { name: "Import from JSON" }).click();
+    await admin.getByPlaceholder("Paste questions JSON here").fill(JSON.stringify(simpleQuestions(2, "New-")));
+    admin.dialogMessages.length = 0;
+    await admin.getByRole("button", { name: "Replace all" }).click();
+    await admin.getByText("Imported 2 question(s).").waitFor({ timeout: 15000 });
+    ok("the confirmation warns that agents who are partway through must start again", admin.dialogMessages.some((m) => m.includes("partway through")), JSON.stringify(admin.dialogMessages));
+
+    // Agent 3 carries on answering and submits.
+    await a3.locator("fieldset").nth(1).locator('input[type="radio"]').nth(1).check();
+    await a3.getByRole("button", { name: "Submit Test" }).click();
+    await a3.getByRole("button", { name: "Yes, submit" }).click();
+    await a3.getByRole("heading", { name: "This test is no longer running" }).waitFor();
+    ok("submitting after the questions were replaced explains it (no made-up 0 / 0 result)", (await a3.getByRole("heading", { name: "Your Result" }).count()) === 0 && (await a3.getByRole("link", { name: "Back to all tests" }).count()) === 1);
+    await a3.getByRole("button", { name: "Start again" }).click();
+    await a3.getByRole("button", { name: "Start Test" }).waitFor();
+    ok("'Start again' leads to the start screen with the name remembered", (await a3.getByLabel("Your name").inputValue()) === "Ann Three");
+    await a3.getByRole("button", { name: "Start Test" }).click();
+    await a3.locator("fieldset").first().waitFor();
+    ok("the new attempt has the NEW questions", (await a3.locator("fieldset").count()) === 2 && (await a3.getByText("New-1").count()) === 1);
+
+    // Agent 4 simply reloads.
+    await a4.reload();
+    await a4.getByRole("button", { name: "Start Test" }).waitFor();
+    ok("after a reload the agent gets the start screen, not an empty test", (await a4.locator("fieldset").count()) === 0 && (await a4.getByLabel("Your name").inputValue()) === "Ann Four");
+    await goList(a4);
+    ok("the list does not claim an attempt is in progress", (await card(a4, "Replace me").innerText()).includes("Not attempted yet"));
+
+    await admin.getByRole("button", { name: "← All tests" }).click();
+    await admin.getByRole("button", { name: "Attempts", exact: true }).click();
+    await admin.waitForFunction(() => !document.body.innerText.includes("Ann Four"), null, { timeout: 12000 });
+    ok("the admin's Attempts tab has no leftover row for the discarded attempt", true);
+    ok("Ann Three has exactly one attempt (the new one)", (await admin.locator("tbody tr", { hasText: "Ann Three" }).count()) === 1);
+  });
+
+  await group("deleting a test warns with the CURRENT numbers, and Cancel keeps everything", async () => {
+    const id = await mkTest("Counted", 2);
+    await admin.goto(`${BASE}/test/admin`);
+    await row("Counted").waitFor();
+    ok("the table (loaded before the attempt) shows 0 attempts", (await row("Counted").innerText()).replace(/\s+/g, " ").includes("2 50% 0 Open"));
+    const token = (await api("POST", "/session")).data.token;
+    await api("POST", "/attempt/start", { token, body: { name: "Late Bird", testId: id } }); // after the table was loaded
+    admin.dialogAction = "dismiss";
+    admin.dialogMessages.length = 0;
+    await row("Counted").getByRole("button", { name: "Delete" }).click();
+    await admin.waitForFunction(() => true);
+    ok("the warning shows the real numbers: 2 questions and 1 attempt", admin.dialogMessages.length === 1 && admin.dialogMessages[0].includes("2 question(s) and 1 attempt(s)"), JSON.stringify(admin.dialogMessages));
+    ok("Cancel keeps the test and its attempt", (await row("Counted").count()) === 1 && (await withDb((db) => db.collection("attempts").countDocuments({ testTitle: "Counted" }))) === 1);
+    admin.dialogAction = "accept";
+    await row("Counted").getByRole("button", { name: "Delete" }).click();
+    await row("Counted").waitFor({ state: "detached" });
+    ok("OK deletes the test together with its attempt", (await withDb((db) => db.collection("attempts").countDocuments({ testTitle: "Counted" }))) === 0);
+
+    // Cancelling the other destructive actions
+    const keep = await mkTest("Keep me", 2);
+    await admin.reload();
+    await row("Keep me").getByRole("button", { name: "Edit" }).click();
+    await admin.getByRole("heading", { name: "Test details" }).waitFor();
+    admin.dialogAction = "dismiss";
+    await admin.locator("div.bg-white.rounded.shadow.p-3.text-sm").first().getByRole("button", { name: "Delete" }).click();
+    await admin.waitForTimeout(500);
+    ok("cancelling 'delete question' keeps the question", (await admin.getByText("2 question(s)").count()) >= 1);
+    await admin.getByRole("button", { name: "Import from JSON" }).click();
+    await admin.getByPlaceholder("Paste questions JSON here").fill(JSON.stringify(simpleQuestions(1, "Nope-")));
+    await admin.getByRole("button", { name: "Replace all" }).click();
+    await admin.waitForTimeout(500);
+    ok("cancelling 'Replace all' keeps the old questions", (await withDb((db) => db.collection("questions").countDocuments({ testId: keep }))) === 2);
+    admin.dialogAction = "accept";
+  });
+
+  await group("what the admin types is shown literally, and long titles fit a phone", async () => {
+    const tricky = '<b>Bold</b> & "quotes" <script>window.__xss = 1</script>';
+    await mkTest(tricky, 2, { description: "line one\nline two" });
+    const longTitle = "Supercalifragilisticexpialidocious".repeat(4).slice(0, 120);
+    const longId = await mkTest(longTitle, 2, { description: "d".repeat(300) });
+    await mkTest("Twin", 2);
+    await mkTest("Twin", 2);
+
+    const phone = await mk("phone", 375);
+    await goList(phone);
+    const trickyCard = phone.locator("article", { has: phone.locator("h2", { hasText: "<b>Bold</b>" }) });
+    ok("HTML in a title is shown as text, not run", (await trickyCard.count()) === 1 && (await phone.locator("article h2 b").count()) === 0 && (await phone.evaluate(() => window.__xss)) === undefined);
+    ok("a line break in a description is kept", /line one\s*\n\s*line two/.test(await trickyCard.innerText()));
+    ok("two tests with the same title are both listed with different links", (await phone.locator("article h2", { hasText: /^Twin$/ }).count()) === 2 && new Set(await phone.locator("article:has(h2:text-is('Twin')) a").evaluateAll((els) => els.map((e) => e.getAttribute("href")))).size === 2);
+    ok("the list fits a 375px phone with a 120-character title and a 300-character description", (await overflow(phone)) <= 1, await overflow(phone));
+    await phone.goto(`${BASE}/test/${longId}`);
+    await phone.getByRole("button", { name: "Start Test" }).waitFor();
+    ok("the start screen fits too", (await overflow(phone)) <= 1, await overflow(phone));
+    await startAs(phone, "Pho Ne");
+    await phone.locator("fieldset").first().waitFor();
+    ok("and so does the running test (sticky header with the long title)", (await overflow(phone)) <= 1, await overflow(phone));
+
+    const adminPhone = await mk("adminPhone", 375);
+    await loginOn(adminPhone);
+    ok("the admin Tests tab fits a phone", (await overflow(adminPhone)) <= 1, await overflow(adminPhone));
+    await adminPhone.locator("tbody p.font-semibold", { hasText: "<b>Bold</b>" }).first().waitFor();
+    ok("the admin table shows the HTML title as text", (await adminPhone.locator("tbody p.font-semibold", { hasText: "<b>Bold</b>" }).count()) === 1 && (await adminPhone.locator("tbody p.font-semibold b").count()) === 0);
+    await adminPhone.getByRole("button", { name: "Attempts", exact: true }).click();
+    await adminPhone.locator("#attempts-filter").waitFor();
+    ok("the Attempts tab (with a 120-character test in the filter) fits a phone", (await overflow(adminPhone)) <= 1, await overflow(adminPhone));
+    await adminPhone.getByRole("button", { name: "Tests", exact: true }).click();
+    await adminPhone.locator("tbody tr", { has: adminPhone.locator("p.font-semibold", { hasText: "Supercali" }) }).getByRole("button", { name: "Edit" }).click();
+    await adminPhone.getByRole("heading", { name: "Test details" }).waitFor();
+    ok("the test editor fits a phone", (await overflow(adminPhone)) <= 1, await overflow(adminPhone));
+  });
+
+  await group("leaving a running test through the site and coming back", async () => {
+    const id = await mkTest("Come back", 3);
+    const nav = await mk("nav2");
+    await nav.goto(`${BASE}/test/${id}`);
+    await startAs(nav, "Nina Nav");
+    await nav.locator("fieldset").first().waitFor();
+    await nav.locator("fieldset").first().locator('input[type="radio"]').nth(1).check();
+    await nav.getByText("Answered 1 / 3").waitFor();
+    await nav.locator("nav a", { hasText: "MCQ Test" }).first().click();
+    await nav.getByRole("heading", { name: "Tests", exact: true }).waitFor();
+    ok("the navbar leaves the test without a pop-up and the list shows it in progress", (await card(nav, "Come back").innerText()).includes("In progress"));
+    await card(nav, "Come back").getByRole("link", { name: "Resume" }).click();
+    await nav.getByText("Answered 1 / 3").waitFor();
+    ok("Resume restores the saved answer", (await nav.locator("fieldset").count()) === 3);
+    await nav.goBack();
+    await nav.getByRole("heading", { name: "Tests", exact: true }).waitFor();
+    await nav.goForward();
+    await nav.getByText("Answered 1 / 3").waitFor();
+    ok("the browser's Back and Forward buttons work around a running test", true);
+  });
+
+  await group("the agent's browser has problems: a bad session, blocked storage, no network", async () => {
+    const junk = await mk("junk", 1200, () => { try { localStorage.setItem("callsopAgentToken", "garbage.token"); } catch { /* ignore */ } });
+    await goList(junk);
+    ok("a garbage session token is replaced silently and the list still loads", (await cardTitles(junk)).length >= 1);
+
+    const blocked = await mk("blocked", 1200, () => Object.defineProperty(window, "localStorage", { get() { throw new Error("blocked"); } }));
+    await goList(blocked);
+    await blocked.locator("article").first().getByRole("link").click();
+    await blocked.getByRole("button", { name: "Start Test" }).waitFor();
+    await startAs(blocked, "No Storage");
+    await blocked.locator("fieldset").first().waitFor();
+    ok("with storage blocked, the list opens and a test can still be started", (await blocked.locator("fieldset").count()) >= 2);
+
+    // The list cannot be loaded, then can.
+    const offline = await mk("offline");
+    await offline.route("**/api/tests", (route) => route.abort());
+    await offline.goto(`${BASE}/test`);
+    await offline.getByRole("button", { name: "Try again" }).waitFor();
+    ok("when the list cannot load, there is an error and no false 'no tests' message", (await offline.getByText("No tests are available right now.").count()) === 0);
+    await offline.unroute("**/api/tests");
+    await offline.route("**/api/tests", async (route) => { await new Promise((resolve) => setTimeout(resolve, 1500)); await route.continue(); });
+    await offline.getByRole("button", { name: "Try again" }).click();
+    await offline.getByText("Loading tests…").waitFor();
+    ok("while retrying it says Loading (never 'no tests are available')", (await offline.getByText("No tests are available right now.").count()) === 0);
+    await offline.locator("article").first().waitFor({ timeout: 10000 });
+    ok("a retry brings the tests back", true);
+
+    // Submit fails (network), then works.
+    const id = await mkTest("Flaky net", 3);
+    const flaky = await mk("flaky");
+    await flaky.goto(`${BASE}/test/${id}`);
+    await startAs(flaky, "Fay Net");
+    await flaky.locator("fieldset").first().waitFor();
+    await flaky.route("**/submit", (route) => route.abort());
+    await flaky.getByRole("button", { name: "Submit Test" }).click();
+    await flaky.getByRole("button", { name: "Yes, submit" }).click();
+    const alert = flaky.getByRole("alert");
+    await alert.waitFor();
+    const box = await alert.boundingBox();
+    ok("a failed submit shows its error next to the Submit button, on screen", box && box.y >= 0 && box.y + box.height <= 900, JSON.stringify(box));
+    ok("the test is still there to submit again", (await flaky.locator("fieldset").count()) === 3);
+    await flaky.unroute("**/submit");
+    await flaky.getByRole("button", { name: "Submit Test" }).click();
+    await flaky.getByRole("button", { name: "Yes, submit" }).click();
+    await flaky.getByRole("heading", { name: "Your Result" }).waitFor();
+    ok("submitting again works once the network is back", true);
+  });
+
+  await group("keyboard and double clicks", async () => {
+    const id = await mkTest("Keys", 3);
+    const key = await mk("key");
+    await key.goto(`${BASE}/test/${id}`);
+    await key.getByLabel("Your name").focus();
+    await key.keyboard.type("Kay Board");
+    await key.keyboard.press("Enter");
+    await key.locator("fieldset").first().waitFor();
+    ok("the name form is submitted with Enter", true);
+    const groupNames = await key.getByRole("group").evaluateAll((els) => els.map((e) => e.getAttribute("aria-labelledby")));
+    ok("each question is a named group (the question text labels it)", (await key.getByRole("group", { name: /^\d+\. Keys-\d: pick B$/ }).count()) === 3 && (await key.getByRole("group").count()) === 3, `${await key.getByRole("group").count()} groups: ${JSON.stringify(groupNames)}`);
+    await key.getByRole("button", { name: "Submit Test" }).focus();
+    await key.keyboard.press("Enter");
+    await key.getByRole("dialog").waitFor();
+    ok("the submit box puts focus on the safe choice 'Go back'", (await key.evaluate(() => document.activeElement?.textContent?.trim())) === "Go back");
+    await key.keyboard.press("Escape");
+    await key.getByRole("dialog").waitFor({ state: "detached" });
+    ok("Escape closes it and the test carries on", (await key.locator("fieldset").count()) === 3);
+
+    const twice = await mk("twice");
+    await twice.goto(`${BASE}/test/${id}`);
+    await twice.getByLabel("Your name").fill("Dee Click");
+    await twice.getByRole("button", { name: "Start Test" }).dblclick();
+    await twice.locator("fieldset").first().waitFor();
+    await twice.waitForTimeout(800);
+    const count = await withDb((db) => db.collection("attempts").countDocuments({ testId: id, name: "Dee Click" }));
+    ok("a double click on Start creates ONE attempt", count === 1, count);
+
+    // Answers cannot be changed while the submit is on its way.
+    await twice.getByRole("button", { name: "Submit Test" }).click();
+    await twice.route("**/submit", async (route) => { await new Promise((resolve) => setTimeout(resolve, 1200)); await route.continue(); });
+    await twice.getByRole("button", { name: "Yes, submit" }).click();
+    await twice.locator("fieldset").first().locator('input[type="radio"]').first().waitFor();
+    ok("the options are disabled while submitting", await twice.locator("fieldset").first().locator('input[type="radio"]').first().isDisabled());
+    await twice.getByRole("heading", { name: "Your Result" }).waitFor({ timeout: 10000 });
+  });
+
+  await group("question editing inside a second test leaves the other test alone", async () => {
+    const other = await mkTest("Bystander", 2);
+    const target = await mkTest("Editable", 3);
+    await admin.goto(`${BASE}/test/admin`);
+    await row("Editable").getByRole("button", { name: "Edit" }).click();
+    await admin.getByRole("heading", { name: "Test details" }).waitFor();
+    const cards = admin.locator("div.bg-white.rounded.shadow.p-3.text-sm");
+    ok("the first question cannot move up, the last cannot move down", (await cards.first().getByRole("button", { name: "Move up" }).isDisabled()) && (await cards.last().getByRole("button", { name: "Move down" }).isDisabled()));
+    await cards.first().getByRole("button", { name: "Move down" }).click();
+    await admin.waitForFunction(() => document.querySelectorAll("div.bg-white.rounded.shadow.p-3.text-sm")[1].innerText.includes("Edit-1"));
+    ok("Move down swaps the first two questions", true);
+
+    await admin.getByRole("button", { name: "Import from JSON" }).click();
+    await admin.locator('input[type="file"]').setInputFiles({ name: "q.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ questions: simpleQuestions(4, "File-") })) });
+    await admin.waitForFunction(() => document.querySelector("textarea[placeholder='Paste questions JSON here']").value.includes("File-1"));
+    await admin.getByRole("button", { name: "Replace all" }).click();
+    await admin.getByText("Imported 4 question(s).").waitFor({ timeout: 15000 });
+    ok("a JSON file can be imported", (await cards.count()) === 4);
+    ok("Replace all changed only this test (the other still has 2 questions)", (await withDb((db) => db.collection("questions").countDocuments({ testId: other }))) === 2 && (await withDb((db) => db.collection("questions").countDocuments({ testId: target }))) === 4);
+  });
+
+  await group("editing a test's details shows to agents at once", async () => {
+    const id = await mkTest("Editable details", 2);
+    await admin.goto(`${BASE}/test/admin`);
+    await row("Editable details").getByRole("button", { name: "Edit" }).click();
+    await admin.getByRole("heading", { name: "Test details" }).waitFor();
+    await admin.getByLabel("Description (shown to agents, optional)").fill("Now with a description.");
+    await admin.getByLabel("Pass mark (%)").fill("90");
+    await admin.getByRole("button", { name: "Save details" }).click();
+    await admin.getByText("Saved.").waitFor();
+    const viewer = await mk("viewer");
+    await goList(viewer);
+    const text = await card(viewer, "Editable details").innerText();
+    ok("the agents' list shows the new description and pass mark", text.includes("Now with a description.") && text.includes("pass mark 90%"), text);
+    await viewer.goto(`${BASE}/test/${id}`);
+    await viewer.getByRole("button", { name: "Start Test" }).waitFor();
+    ok("so does the start screen", (await viewer.getByText("2 multiple-choice questions. Pass mark: 90%.").count()) === 1);
+  });
+
+  await group("a page that cannot be downloaded after an update shows how to recover", async () => {
+    const stale = await mk("stale");
+    await stale.route("**/assets/McqList*.js", (route) => route.abort());
+    await stale.goto(`${BASE}/`);
+    await stale.locator("nav a", { hasText: "MCQ Test" }).first().click();
+    await stale.getByRole("heading", { name: "This page could not be loaded" }).waitFor({ timeout: 15000 });
+    ok("instead of a blank page there is a message with a Reload button", (await stale.getByRole("button", { name: "Reload" }).count()) === 1);
+    await stale.unroute("**/assets/McqList*.js");
+    await stale.getByRole("button", { name: "Reload" }).click();
+    await stale.getByRole("heading", { name: "Tests", exact: true }).waitFor();
+    ok("Reload brings the page back", true);
   });
 
   ok("no uncaught page errors", errors.length === 0, errors.join(" | "));

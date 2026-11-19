@@ -1,119 +1,46 @@
-import { Fragment, useEffect, useRef, useState } from "react";
-import { TriangleAlert } from "lucide-react";
+import { Fragment, useState } from "react";
 import { VIOLATION_LABELS, formatTime } from "../../utils/mcqApi";
-import { deleteAttempt, fetchAttempts } from "../../utils/mcqAdminApi";
+import { deleteAttempt } from "../../utils/mcqAdminApi";
+import { ATTEMPT_LIMIT } from "./useLiveAttempts";
 
-const POLL_MS = 3000;
-
-// Every attempt at every test (or one test), updating live.
-const AttemptsPanel = ({ tests }) => {
-  const [attempts, setAttempts] = useState([]);
-  const [answerKeys, setAnswerKeys] = useState({}); // question id -> correct letter
+// Every attempt at every test (or one test). The data is kept up to date by
+// useLiveAttempts in the admin page, which also shows the red alerts on every tab.
+const AttemptsPanel = ({ tests, attempts, answerKeys, loaded, error, onDeleted }) => {
   const [filter, setFilter] = useState(""); // "" = every test
-  const [loadedFilter, setLoadedFilter] = useState(null); // which filter `attempts` belongs to
-  const [alerts, setAlerts] = useState([]);
   const [openId, setOpenId] = useState(null);
-  const [error, setError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+
+  // A filter on a test that was deleted meanwhile falls back to "All tests".
+  const activeFilter = tests.some((t) => t.id === filter) ? filter : "";
+  const shown = activeFilter ? attempts.filter((a) => a.testId === activeFilter) : attempts;
+  const totalWarnings = shown.reduce((sum, a) => sum + a.violations.length, 0);
 
   // The current title of a test (renaming a test updates old attempts' display).
-  const testsRef = useRef(tests);
-  testsRef.current = tests;
-  const titleOf = (attempt) =>
-    testsRef.current.find((t) => t.id === attempt.testId)?.title || attempt.testTitle || "–";
-
-  // Live updates: ask the server for everything every few seconds. Warnings
-  // that were not there on the previous poll become red alerts.
-  useEffect(() => {
-    let stopped = false;
-    let firstPoll = true;
-    const seen = new Set();
-
-    const poll = async () => {
-      try {
-        const { attempts: list, answerKeys: keys } = await fetchAttempts(filter || undefined);
-        if (stopped) return;
-        setAttempts(list);
-        setAnswerKeys(keys);
-        setLoadedFilter(filter);
-        setError("");
-
-        const fresh = [];
-        list.forEach((attempt) =>
-          attempt.violations.forEach((w) => {
-            if (seen.has(w.id)) return;
-            seen.add(w.id);
-            if (!firstPoll) {
-              fresh.push({
-                key: w.id,
-                who: `${attempt.name} (Attempt #${attempt.attemptNo}, ${titleOf(attempt)})`,
-                type: w.type,
-              });
-            }
-          })
-        );
-        firstPoll = false; // warnings that existed before this view opened are not "new"
-        if (fresh.length) setAlerts((prev) => [...fresh, ...prev].slice(0, 5));
-      } catch (err) {
-        if (!stopped) setError(`Live updates paused: ${err.message}`);
-      }
-    };
-
-    poll();
-    const timer = setInterval(poll, POLL_MS);
-    // Catch up immediately when the admin returns to this tab.
-    const onVisible = () => !document.hidden && poll();
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      stopped = true;
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [filter]);
-
-  const totalWarnings = attempts.reduce((sum, a) => sum + a.violations.length, 0);
-  const loading = loadedFilter !== filter;
+  const titleOf = (attempt) => tests.find((t) => t.id === attempt.testId)?.title || attempt.testTitle || "–";
 
   const handleDelete = async (attempt) => {
     if (!window.confirm(`Delete ${attempt.name}'s attempt #${attempt.attemptNo} and its results?`)) return;
+    setDeleteError("");
     try {
       await deleteAttempt(attempt.id);
-      setAttempts((prev) => prev.filter((a) => a.id !== attempt.id));
+      onDeleted(attempt.id);
     } catch (err) {
-      setError(`Could not delete: ${err.message}`);
+      setDeleteError(`Could not delete: ${err.message}`);
     }
   };
 
   return (
     <div>
-      {alerts.map((alert) => (
-        <div
-          key={alert.key}
-          className="bg-red-600 text-white rounded p-3 mb-2 flex justify-between items-center gap-3"
-        >
-          <p className="flex gap-2 items-center">
-            <TriangleAlert className="w-5 shrink-0" />
-            <span>
-              <strong>{alert.who}</strong>: {VIOLATION_LABELS[alert.type] || alert.type}
-            </span>
-          </p>
-          <button
-            onClick={() => setAlerts((prev) => prev.filter((a) => a.key !== alert.key))}
-            className="underline shrink-0"
-          >
-            Dismiss
-          </button>
-        </div>
-      ))}
-
       {error && <p className="bg-red-600 text-white rounded p-3 mb-3 text-sm">{error}</p>}
+      {deleteError && <p className="bg-red-600 text-white rounded p-3 mb-3 text-sm">{deleteError}</p>}
 
       <div className="flex flex-wrap items-center gap-3 mb-2">
         <label className="font-medium" htmlFor="attempts-filter">Show</label>
         <select
           id="attempts-filter"
-          value={filter}
+          value={activeFilter}
           onChange={(e) => setFilter(e.target.value)}
-          className="p-1 border rounded bg-white"
+          className="p-1 border rounded bg-white max-w-full min-w-0"
         >
           <option value="">All tests</option>
           {tests.map((test) => (
@@ -123,9 +50,12 @@ const AttemptsPanel = ({ tests }) => {
           ))}
         </select>
         <p className="font-medium">
-          {attempts.length} attempt(s) · {totalWarnings} tab/window switch warning(s) · updates every few seconds
+          {shown.length} attempt(s) · {totalWarnings} tab/window switch warning(s) · updates every few seconds
         </p>
       </div>
+      {attempts.length >= ATTEMPT_LIMIT && (
+        <p className="text-sm text-gray-600 mb-2">Only the newest {ATTEMPT_LIMIT} attempts are listed.</p>
+      )}
 
       <div className="overflow-x-auto bg-white rounded shadow">
         <table className="min-w-full text-sm">
@@ -142,18 +72,18 @@ const AttemptsPanel = ({ tests }) => {
             </tr>
           </thead>
           <tbody>
-            {loading && (
+            {!loaded && (
               <tr>
                 <td colSpan={8} className="px-3 py-4 text-gray-500">Loading…</td>
               </tr>
             )}
-            {!loading && attempts.length === 0 && (
+            {loaded && shown.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-3 py-4 text-gray-500">No attempts yet.</td>
               </tr>
             )}
-            {!loading &&
-              attempts.map((a) => {
+            {loaded &&
+              shown.map((a) => {
                 const warnings = a.violations;
                 const done = a.status === "completed";
                 const answered = Object.keys(a.answers || {}).length;

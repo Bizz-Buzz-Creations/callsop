@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { TriangleAlert } from "lucide-react";
 import {
@@ -26,7 +26,7 @@ const shuffled = (list) => {
 
 // One test, chosen by the id in the address (/test/<id>).
 const McqTest = ({ testId }) => {
-  // loading | missing | start | test | result
+  // loading | missing | start | test | changed | result
   const [stage, setStage] = useState("loading");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -40,6 +40,12 @@ const McqTest = ({ testId }) => {
   const [result, setResult] = useState(null);
   const [violationCount, setViolationCount] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const errorRef = useRef(null);
+  const goBackRef = useRef(null);
+
+  // The attempt is gone on the server: the admin changed or removed the test, or it was
+  // already submitted in another window. Saving, reporting and submitting all end up here.
+  const isLost = (err) => err?.status === 404 || err?.status === 409;
 
   // The questions of THIS attempt, in a fresh random order every time the page
   // loads (so a refresh reshuffles). Answers are stored per question, not per
@@ -90,8 +96,9 @@ const McqTest = ({ testId }) => {
   // the admin. The test itself carries on.
   const attemptId = attempt?.id;
   useEffect(() => {
-    if (stage !== "test" || !attemptId) return;
+    if (stage !== "test" || !attemptId) return undefined;
 
+    let cancelled = false;
     let lastRecorded = 0;
     // Refreshing, closing or navigating away fires "hidden" events too. Those
     // are not tab switches, so ignore anything right after the page starts leaving.
@@ -110,9 +117,23 @@ const McqTest = ({ testId }) => {
       // Switching tabs fires both events; count it once.
       if (now - lastRecorded < 1000) return;
       lastRecorded = now;
-      logViolation(attemptId, type).catch((err) => console.warn("Could not report warning", err));
+      report(type);
       setViolationCount((count) => count + 1);
       setShowWarning(true);
+    };
+    // A failed report (a network blip) is tried again, so the admin does not miss it.
+    const report = async (type) => {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await logViolation(attemptId, type);
+          return;
+        } catch (err) {
+          if (cancelled) return;
+          if (isLost(err)) return setStage("changed");
+          if (attempt === 3) return console.warn("Could not report warning", err);
+          await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+        }
+      }
     };
 
     const onVisibility = () => document.hidden && record("tab-switch");
@@ -132,6 +153,7 @@ const McqTest = ({ testId }) => {
     document.addEventListener("contextmenu", block);
 
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("beforeunload", onBeforeUnload);
@@ -140,6 +162,16 @@ const McqTest = ({ testId }) => {
       document.removeEventListener("contextmenu", block);
     };
   }, [stage, attemptId]);
+
+  // A failed submit is shown next to the Submit button; bring it into view.
+  useEffect(() => {
+    if (error && stage === "test") errorRef.current?.scrollIntoView({ block: "center" });
+  }, [error, stage]);
+
+  // The submit box: keyboard focus starts on the safe choice, Escape closes it.
+  useEffect(() => {
+    if (confirming) goBackRef.current?.focus();
+  }, [confirming]);
 
   const handleStart = async (event) => {
     event.preventDefault();
@@ -168,9 +200,10 @@ const McqTest = ({ testId }) => {
 
   const handleSelect = (questionId, letter) => {
     setAnswers((prev) => ({ ...prev, [questionId]: letter }));
-    saveAnswer(attempt.id, questionId, letter).catch((err) =>
-      console.warn("Could not save answer (it is still sent on submit)", err)
-    );
+    saveAnswer(attempt.id, questionId, letter).catch((err) => {
+      if (isLost(err)) setStage("changed");
+      else console.warn("Could not save answer (it is still sent on submit)", err);
+    });
   };
 
   // The confirmation is drawn inside the page on purpose. A browser pop-up
@@ -181,12 +214,16 @@ const McqTest = ({ testId }) => {
     setBusy(true);
     setError("");
     try {
-      setResult(await submitAttempt(attempt.id, answers));
+      const scored = await submitAttempt(attempt.id, answers);
+      // Show the answers the server actually scored (it also knows answers saved from another window).
+      if (scored.answers) setAnswers(scored.answers);
+      setResult(scored);
       setShowWarning(false);
       setStage("result");
       window.scrollTo(0, 0);
     } catch (err) {
-      setError(friendlyError(err));
+      if (isLost(err)) setStage("changed");
+      else setError(friendlyError(err));
     } finally {
       setBusy(false);
     }
@@ -216,13 +253,36 @@ const McqTest = ({ testId }) => {
     );
   }
 
+  if (stage === "changed") {
+    return (
+      <section className="max-w-xl mx-auto mt-8 p-6 border rounded-md shadow bg-gray-100">
+        <h1 className="text-2xl font-semibold mb-2">This test is no longer running</h1>
+        <p className="mb-4">
+          The admin changed or removed it, or it was already submitted in another window. Your
+          answers could not be saved.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
+          >
+            Start again
+          </button>
+          <Link to="/test" className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+            Back to all tests
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   if (stage === "start") {
     const title = config?.title || "MCQ Test";
     return (
       <section className="max-w-xl mx-auto mt-8 p-6 border rounded-md shadow bg-gray-100">
         <Link to="/test" className="text-sm text-gray-500 hover:underline">← All tests</Link>
-        <h1 className="text-2xl font-semibold mb-1 mt-2">{title}</h1>
-        {config?.description && <p className="text-gray-600 mb-2 whitespace-pre-line">{config.description}</p>}
+        <h1 className="text-2xl font-semibold mb-1 mt-2 break-words">{title}</h1>
+        {config?.description && <p className="text-gray-600 mb-2 whitespace-pre-line break-words">{config.description}</p>}
         {config && (
           <p className="text-gray-700 mb-4">
             {bank.length} multiple-choice question{bank.length === 1 ? "" : "s"}. Pass mark: {config.passPercent}%.
@@ -282,9 +342,9 @@ const McqTest = ({ testId }) => {
     return (
       <section className="max-w-3xl mx-auto mt-8 p-4 border rounded-md shadow bg-gray-100">
         <h1 className="text-2xl font-semibold mb-1">Your Result</h1>
-        <p className="text-gray-600 mb-3">{config?.title}</p>
+        <p className="text-gray-600 mb-3 break-words">{config?.title}</p>
 
-        <div className={`rounded p-4 text-white mb-4 ${result.passed ? "bg-green-600" : "bg-red-600"}`}>
+        <div className={`rounded p-4 text-white mb-4 ${result.passed ? "bg-green-700" : "bg-red-600"}`}>
           <p className="text-3xl font-bold">
             {result.score} / {result.total} ({result.percent}%)
           </p>
@@ -352,7 +412,7 @@ const McqTest = ({ testId }) => {
   return (
     <section className="max-w-3xl mx-auto mt-4 p-4 border rounded-md shadow bg-gray-100 select-none">
       <div className="sticky top-0 z-10 bg-gray-800 text-white rounded p-3 mb-4 flex flex-wrap justify-between gap-2 text-sm">
-        <span className="font-semibold">{config?.title}</span>
+        <span className="font-semibold break-words min-w-0">{config?.title}</span>
         <span>
           Answered {answeredCount} / {questions.length}
         </span>
@@ -360,8 +420,6 @@ const McqTest = ({ testId }) => {
           Switches recorded: {violationCount}
         </span>
       </div>
-
-      {error && <p className="bg-red-600 text-white rounded p-3 mb-4 text-sm">{error}</p>}
 
       {showWarning && (
         <div className="bg-red-600 text-white rounded p-3 mb-4 flex justify-between items-start gap-3">
@@ -385,9 +443,8 @@ const McqTest = ({ testId }) => {
             {section.items.map((q) => {
               const number = questions.indexOf(q) + 1;
               return (
-                <fieldset key={q.id} className="bg-white rounded shadow p-3">
-                  <legend className="sr-only">Question {number}</legend>
-                  <p className="font-medium mb-2">
+                <fieldset key={q.id} className="bg-white rounded shadow p-3" aria-labelledby={`question-${q.id}`}>
+                  <p id={`question-${q.id}`} className="font-medium mb-2">
                     {number}. {q.question}
                   </p>
                   <div className="space-y-1">
@@ -405,6 +462,7 @@ const McqTest = ({ testId }) => {
                             name={`question-${q.id}`}
                             className="mt-1"
                             checked={answers[q.id] === letter}
+                            disabled={busy}
                             onChange={() => handleSelect(q.id, letter)}
                           />
                           <span>
@@ -421,6 +479,12 @@ const McqTest = ({ testId }) => {
         </div>
       ))}
 
+      {error && (
+        <p ref={errorRef} role="alert" className="bg-red-600 text-white rounded p-3 mb-3 text-sm">
+          {error}
+        </p>
+      )}
+
       <button
         onClick={() => setConfirming(true)}
         disabled={busy}
@@ -430,7 +494,13 @@ const McqTest = ({ testId }) => {
       </button>
 
       {confirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="submit-title">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="submit-title"
+          onKeyDown={(event) => event.key === "Escape" && setConfirming(false)}
+        >
           <div className="bg-white rounded shadow-xl p-5 max-w-md w-full">
             <h2 id="submit-title" className="text-lg font-semibold mb-2">Submit your test?</h2>
             <p className="mb-4 text-sm">
@@ -439,7 +509,7 @@ const McqTest = ({ testId }) => {
                 : "You cannot change your answers after submitting."}
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setConfirming(false)} className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+              <button ref={goBackRef} onClick={() => setConfirming(false)} className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
                 Go back
               </button>
               <button onClick={handleSubmit} className="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600">

@@ -9,6 +9,7 @@ const McqList = () => {
 
   const load = useCallback(async () => {
     setError("");
+    setTests(null); // show "Loading" while retrying, not a false "no tests" message
     try {
       setTests(await loadTests());
     } catch (err) {
@@ -47,7 +48,7 @@ const McqList = () => {
       <div className="space-y-3">
         {tests.map((test) => (
           <article key={test.id} aria-label={test.title} className="bg-white rounded shadow p-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 break-words">
               <h2 className="text-lg font-semibold">{test.title}</h2>
               {test.description && <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{test.description}</p>}
               <p className="text-sm text-gray-500 mt-1">
@@ -59,7 +60,7 @@ const McqList = () => {
                     In progress{test.active ? "" : " (closed: you can still finish it)"}
                   </span>
                 ) : test.last ? (
-                  <span className={`px-2 py-1 rounded-full text-white font-semibold ${test.last.passed ? "bg-green-600" : "bg-red-600"}`}>
+                  <span className={`px-2 py-1 rounded-full text-white font-semibold ${test.last.passed ? "bg-green-700" : "bg-red-600"}`}>
                     Last result: {test.last.score}/{test.last.total} ({test.last.percent}%) · {test.last.passed ? "Passed" : "Not passed"}
                   </span>
                 ) : (

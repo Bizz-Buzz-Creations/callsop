@@ -70,7 +70,30 @@ const attemptSummary = (a) => ({
   passed: a.passed,
   passPercent: a.passPercent,
   correct: a.correct,
+  answers: a.answers || {}, // the answers that were actually scored
 });
+
+// Does at least one question of an attempt still exist? "Replace all" in the admin panel
+// gives every question a new id, so an attempt that started before it can never be
+// scored. Such an attempt is discarded instead of being recorded as a failed 0 / 0.
+const hasLiveQuestions = async (db, questionIds) =>
+  questionIds.length > 0 &&
+  (await db.collection("questions").countDocuments({ _id: { $in: questionIds.map((id) => new ObjectId(id)) } }, { limit: 1 })) > 0;
+
+const voidAttempt = async (db, attemptId) => {
+  await db.collection("violations").deleteMany({ attemptId });
+  await db.collection("attempts").deleteOne({ _id: attemptId });
+};
+
+// This session's running attempt in one test (a dead one is discarded, see above).
+const findOpenAttempt = async (db, sid, testId) => {
+  const open = await db.collection("attempts").findOne({ sid, status: "in-progress", testId });
+  if (open && !(await hasLiveQuestions(db, open.questionIds || []))) {
+    await voidAttempt(db, open._id);
+    return null;
+  }
+  return open;
+};
 
 // ---- Agent routes ---------------------------------------------------------------
 
@@ -105,11 +128,26 @@ route("GET", "/tests", "agent", async ({ db, auth }) => {
       .limit(300)
       .toArray(),
   ]);
+  // Running attempts whose questions were all replaced are not "in progress" any more.
+  const running = await db
+    .collection("attempts")
+    .find({ sid: auth.sub, status: "in-progress" }, { projection: { testId: 1, questionIds: 1 } })
+    .toArray();
+  const stillExist = new Set(
+    (
+      await db
+        .collection("questions")
+        .find({ _id: { $in: running.flatMap((a) => (a.questionIds || []).map((id) => new ObjectId(id))) } }, { projection: { _id: 1 } })
+        .toArray()
+    ).map((q) => q._id.toHexString())
+  );
   const open = {};
   const last = {};
+  for (const a of running) {
+    if ((a.questionIds || []).some((id) => stillExist.has(id))) open[a.testId] ||= a._id.toHexString();
+  }
   for (const a of mine) {
-    if (a.status === "in-progress") open[a.testId] ||= a._id.toHexString();
-    else if (!last[a.testId]) last[a.testId] = { score: a.score, total: a.total, percent: a.percent, passed: a.passed };
+    if (a.status !== "in-progress" && !last[a.testId]) last[a.testId] = { score: a.score, total: a.total, percent: a.percent, passed: a.passed };
   }
   return json(200, {
     tests: tests
@@ -138,7 +176,7 @@ route("GET", "/test/([^/]+)", "agent", async ({ db, params }) => {
 // This browser's unfinished attempt in one test, if any.
 route("GET", "/attempt/open", "agent", async ({ db, auth, req }) => {
   const testId = v.hexId(new URL(req.url).searchParams.get("testId"), "test");
-  const open = await db.collection("attempts").findOne({ sid: auth.sub, status: "in-progress", testId });
+  const open = await findOpenAttempt(db, auth.sub, testId);
   return json(200, {
     attempt: open && {
       id: open._id.toHexString(),
@@ -169,7 +207,7 @@ route("POST", "/attempt/start", "agent", async ({ db, auth, body }) => {
       answers: open.answers || {},
     });
 
-  const open = await attempts.findOne({ sid: auth.sub, status: "in-progress", testId });
+  const open = await findOpenAttempt(db, auth.sub, testId);
   if (open) return resume(open);
 
   const questions = await db
@@ -263,10 +301,18 @@ route("POST", "/attempt/([^/]+)/submit", "agent", async ({ db, auth, params, bod
   const correct = {};
   keyed.forEach((q) => (correct[q._id.toHexString()] = q.answer));
   const scoredIds = Object.keys(correct);
+  if (!scoredIds.length) {
+    // Every question of this attempt was removed or replaced while it was running.
+    await voidAttempt(db, attemptId);
+    throw new HttpError(409, "This test was changed while you were taking it, so it could not be scored. Please start it again.");
+  }
 
+  // The answers this browser sends, plus any already saved from another tab of the same
+  // attempt (what is sent wins), so a stale tab cannot erase answers.
+  const merged = { ...(attempt.answers || {}), ...sent };
   const answers = {};
   scoredIds.forEach((id) => {
-    if (typeof sent[id] === "string" && v.LETTERS.includes(sent[id])) answers[id] = sent[id];
+    if (typeof merged[id] === "string" && v.LETTERS.includes(merged[id])) answers[id] = merged[id];
   });
 
   // The pass mark of the test as it is NOW (a deleted test falls back to the default).
@@ -284,11 +330,12 @@ route("POST", "/attempt/([^/]+)/submit", "agent", async ({ db, auth, params, bod
     passed: percent >= passPercent,
     passPercent,
     correct,
+    answers,
   };
 
   const done = await attempts.findOneAndUpdate(
     { _id: attemptId, sid: auth.sub, status: "in-progress" },
-    { $set: { ...result, answers, status: "completed", finishedAt: new Date() } },
+    { $set: { ...result, status: "completed", finishedAt: new Date() } },
     { returnDocument: "after" }
   );
   if (done) return json(200, result);
@@ -394,12 +441,18 @@ route("DELETE", "/admin/tests/([^/]+)", "admin", async ({ db, params }) => {
   return json(200, { deletedAttempts: attempts.length });
 });
 
+// "<title> (copy)", shortening a very long title so the marker is never cut off.
+const copyTitle = (title) => {
+  const suffix = " (copy)";
+  return title.length + suffix.length <= 120 ? title + suffix : title.slice(0, 120 - suffix.length).trimEnd() + suffix;
+};
+
 // A copy with all questions, closed so the admin can review it before opening it.
 route("POST", "/admin/tests/([^/]+)/duplicate", "admin", async ({ db, params }) => {
   const source = await findTest(db, params[0]);
   if ((await db.collection("tests").countDocuments({})) >= MAX_TESTS) throw new HttpError(409, `Too many tests (max ${MAX_TESTS}).`);
   const { insertedId } = await db.collection("tests").insertOne({
-    title: `${source.title} (copy)`.slice(0, 120),
+    title: copyTitle(source.title),
     description: source.description || "",
     passPercent: source.passPercent ?? DEFAULT_PASS_PERCENT,
     active: false,
@@ -482,10 +535,11 @@ route("POST", "/admin/tests/([^/]+)/questions/import", "admin", async ({ db, par
   let start = 1;
   if (input.mode === "replace") await questions.deleteMany({ testId });
   else {
-    start = await nextOrder(db, testId);
-    if (start - 1 + cleaned.length > MAX_IMPORT_QUESTIONS) {
+    // The limit is on how many questions there ARE; `order` can have gaps after deletions.
+    if ((await questions.countDocuments({ testId })) + cleaned.length > MAX_IMPORT_QUESTIONS) {
       throw new HttpError(409, `That would exceed ${MAX_IMPORT_QUESTIONS} questions in this test.`);
     }
+    start = await nextOrder(db, testId);
   }
   await questions.insertMany(cleaned.map((q, i) => ({ ...q, testId, order: start + i })));
   return json(200, { imported: cleaned.length });

@@ -97,7 +97,7 @@ const QuestionsPanel = ({ testId, questions, onChanged }) => {
     }
     const warning =
       mode === "replace"
-        ? `Replace all ${questions.length} existing question(s) with these ${parsed.length}?`
+        ? `Replace all ${questions.length} existing question(s) with these ${parsed.length}? Agents who are partway through this test will have to start it again.`
         : `Add ${parsed.length} question(s) after the existing ones?`;
     if (!window.confirm(warning)) return;
     const ok = await run(() => importQuestions(testId, parsed, mode), `Imported ${parsed.length} question(s).`);

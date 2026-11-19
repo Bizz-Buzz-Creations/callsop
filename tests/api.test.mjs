@@ -524,6 +524,160 @@ ok("a browser that was in the middle of an old attempt can resume it", r.data.at
 r = await call("POST", `/attempt/${r.data.attempt.id}/submit`, { token: L, body: { answers: Object.fromEntries(legacyQIds.map((id) => [id, "A"])) } });
 ok("…and finish it, scored with the migrated test's pass mark of 65", r.data.score === 3 && r.data.passed === true && r.data.passPercent === 65);
 
+section("migration: edge cases");
+// 1. Only attempts, no questions, and no old settings document: defaults are used.
+await db.collection("tests").deleteOne({ _id: new ObjectId(LEGACY_TEST_ID) });
+await db.collection("config").deleteOne({ _id: "test" });
+await db.collection("questions").deleteMany({ testId: LEGACY_TEST_ID });
+await db.collection("attempts").deleteMany({ testId: LEGACY_TEST_ID });
+await db.collection("attempts").insertOne({ sid: "orphan-1", name: "Orphan", attemptNo: 950, status: "completed", startedAt: new Date(), questionIds: [], total: 0, answers: {}, score: 0, percent: 0, passed: false });
+await migrateToMultipleTests(db);
+const defTest = await db.collection("tests").findOne({ _id: new ObjectId(LEGACY_TEST_ID) });
+ok("with no old settings document the test gets the default title, a 70% pass mark and is open", defTest && defTest.title === "Call Disposition Assessment" && defTest.passPercent === 70 && defTest.active === true, JSON.stringify(defTest));
+ok("an orphan attempt alone is enough to move it into that test", (await db.collection("attempts").countDocuments({ testId: LEGACY_TEST_ID, testTitle: "Call Disposition Assessment" })) === 1);
+// 2. Orphans that appear AFTER the migration (for example from an old script) join the existing test.
+await db.collection("config").updateOne({ _id: "test" }, { $set: { title: "A different title" } }, { upsert: true });
+await db.collection("questions").insertMany([1, 2].map((n) => ({ section: "", question: `Late orphan ${n}?`, options: ["a", "b"], answer: "A", order: n })));
+await migrateToMultipleTests(db);
+ok("late orphans are picked up by the same test, whose settings are NOT overwritten", (await db.collection("questions").countDocuments({ testId: LEGACY_TEST_ID })) === 2 && (await db.collection("tests").findOne({ _id: new ObjectId(LEGACY_TEST_ID) })).title === "Call Disposition Assessment");
+ok("nothing is left without a test", (await db.collection("questions").countDocuments({ testId: { $exists: false } })) === 0 && (await db.collection("attempts").countDocuments({ testId: { $exists: false } })) === 0);
+await db.collection("config").deleteOne({ _id: "test" });
+await db.collection("questions").deleteMany({ testId: LEGACY_TEST_ID });
+await db.collection("attempts").deleteMany({ testId: LEGACY_TEST_ID });
+
+section("changing a test while agents are in the middle of it");
+const CHGT = await mkTest({ title: "Changing test", passPercent: 50 });
+await importQs(CHGT, qOf(4));
+const WA = await newAgent();
+const wStart = (await start(WA, "Wanda", CHGT)).data;
+ok("the agent starts with 4 questions", wStart.questionIds.length === 4);
+const entryOf = async (token, id) => (await call("GET", "/tests", { token })).data.tests.find((t) => t.id === id);
+ok("the list shows the attempt as in progress", (await entryOf(WA, CHGT)).openAttemptId === wStart.attemptId);
+await call("POST", `/attempt/${wStart.attemptId}/violation`, { token: WA, body: { type: "tab-switch" } });
+await importQs(CHGT, qOf(2), "replace"); // every question gets a new id
+ok("after 'Replace all' the list no longer calls that attempt 'in progress'", (await entryOf(WA, CHGT)).openAttemptId === null);
+r = await call("POST", `/attempt/${wStart.attemptId}/submit`, { token: WA, body: { answers: Object.fromEntries(wStart.questionIds.map((id) => [id, "B"])) } });
+is(r, 409, "submitting an attempt whose questions were all replaced -> 409 (not a recorded 0/0 failure)");
+ok("the message tells the agent to start again", /start it again/i.test(r.data.error), r.data.error);
+ok("nothing was recorded for it: no attempt and no warnings left", (await db.collection("attempts").countDocuments({ _id: new ObjectId(wStart.attemptId) })) === 0 && (await db.collection("violations").countDocuments({ attemptId: new ObjectId(wStart.attemptId) })) === 0);
+r = await start(WA, "Wanda", CHGT);
+ok("the agent can start again and gets the NEW questions", r.status === 200 && r.data.resumed === false && r.data.questionIds.length === 2);
+const WB = await newAgent();
+const wb = (await start(WB, "Walt", CHGT)).data;
+await call("POST", `/attempt/${wb.attemptId}/violation`, { token: WB, body: { type: "window-blur" } });
+await importQs(CHGT, qOf(3), "replace");
+r = await open(WB, CHGT);
+ok("opening a dead attempt reports none (and discards it)", r.data.attempt === null && (await db.collection("attempts").countDocuments({ _id: new ObjectId(wb.attemptId) })) === 0);
+r = await start(WB, "Walt", CHGT);
+ok("starting then creates a fresh attempt on the new questions", r.status === 200 && r.data.resumed === false && r.data.questionIds.length === 3);
+// Appending or deleting ONE question leaves the attempt valid.
+const WC = await newAgent();
+const wc = (await start(WC, "Wren", CHGT)).data;
+await importQs(CHGT, qOf(2), "append");
+r = await call("POST", `/attempt/${wc.attemptId}/submit`, { token: WC, body: { answers: Object.fromEntries(wc.questionIds.map((id) => [id, "B"])) } });
+ok("appending questions does not disturb a running attempt (scored on its own 3)", r.status === 200 && r.data.total === 3 && r.data.score === 3, JSON.stringify(r.data));
+
+const DOOMT = await mkTest({ title: "Doomed", passPercent: 50 });
+await importQs(DOOMT, qOf(2));
+const XA = await newAgent();
+const x = (await start(XA, "Xena", DOOMT)).data;
+is(await call("DELETE", `/admin/tests/${DOOMT}`, { token: T }), 200, "the admin deletes a test that an agent is taking");
+is(await call("PUT", `/attempt/${x.attemptId}/answer`, { token: XA, body: { questionId: x.questionIds[0], letter: "B" } }), 409, "saving an answer into it is refused");
+is(await call("POST", `/attempt/${x.attemptId}/violation`, { token: XA, body: { type: "tab-switch" } }), 409, "reporting a warning against it is refused");
+is(await call("POST", `/attempt/${x.attemptId}/submit`, { token: XA, body: { answers: {} } }), 404, "submitting it -> 404");
+ok("it is gone from the agent's list", !(await call("GET", "/tests", { token: XA })).data.tests.some((t) => t.id === DOOMT));
+is(await start(XA, "Xena", DOOMT), 404, "starting it again -> 404");
+is(await open(XA, DOOMT), 200, "asking for its open attempt just says there is none");
+
+section("a second browser tab of the same attempt");
+const TWOT = await mkTest({ title: "Two tabs", passPercent: 50 });
+await importQs(TWOT, qOf(3));
+const MA = await newAgent();
+const m = (await start(MA, "Mia", TWOT)).data;
+await call("PUT", `/attempt/${m.attemptId}/answer`, { token: MA, body: { questionId: m.questionIds[0], letter: "B" } }); // saved by "tab 1"
+r = await call("POST", `/attempt/${m.attemptId}/submit`, { token: MA, body: { answers: { [m.questionIds[1]]: "B" } } }); // submitted by a stale "tab 2"
+ok("an answer saved from another tab still counts (2 of 3)", r.status === 200 && r.data.score === 2 && r.data.total === 3, JSON.stringify({ s: r.data.score, t: r.data.total }));
+ok("the response lists exactly the answers that were scored", r.data.answers[m.questionIds[0]] === "B" && r.data.answers[m.questionIds[1]] === "B" && !(m.questionIds[2] in r.data.answers));
+r = await call("POST", `/attempt/${m.attemptId}/submit`, { token: MA, body: { answers: { [m.questionIds[2]]: "B" } } });
+ok("submitting again returns the stored result, answers included", r.data.score === 2 && r.data.answers[m.questionIds[0]] === "B");
+const MB = await newAgent();
+const mb = (await start(MB, "Max", TWOT)).data;
+await call("PUT", `/attempt/${mb.attemptId}/answer`, { token: MB, body: { questionId: mb.questionIds[0], letter: "A" } });
+r = await call("POST", `/attempt/${mb.attemptId}/submit`, { token: MB, body: { answers: { [mb.questionIds[0]]: "B" } } });
+ok("when both a saved and a sent answer exist, the one sent with the submit wins", r.data.answers[mb.questionIds[0]] === "B" && r.data.score === 1, JSON.stringify(r.data.answers));
+
+section("results: latest result, rounding and pass marks");
+const R1 = await mkTest({ title: "Last result", passPercent: 50 });
+await importQs(R1, qOf(1));
+const LR = await newAgent();
+const finish = async (token, name, testId, letter) => {
+  const a = (await start(token, name, testId)).data;
+  await call("POST", `/attempt/${a.attemptId}/submit`, { token, body: { answers: { [a.questionIds[0]]: letter } } });
+};
+await finish(LR, "Lia", R1, "A"); // 0%
+await finish(LR, "Lia", R1, "B"); // 100%
+const lr3 = (await start(LR, "Lia", R1)).data; // a third attempt, still open
+const lrEntry = await entryOf(LR, R1);
+ok("with an attempt open the list shows it AND the latest finished result (100%, not the earlier 0%)", lrEntry.openAttemptId === lr3.attemptId && lrEntry.last.percent === 100 && lrEntry.last.passed === true, JSON.stringify(lrEntry));
+for (const [mark, passes] of [[67, true], [68, false]]) {
+  const RT = await mkTest({ title: `Rounding ${mark}`, passPercent: mark });
+  await importQs(RT, qOf(3));
+  const RA = await newAgent();
+  const ra = (await start(RA, "Ray", RT)).data;
+  r = await call("POST", `/attempt/${ra.attemptId}/submit`, { token: RA, body: { answers: { [ra.questionIds[0]]: "B", [ra.questionIds[1]]: "B", [ra.questionIds[2]]: "A" } } });
+  ok(`2 of 3 is shown as 67% and ${passes ? "passes" : "fails"} a pass mark of ${mark}`, r.data.percent === 67 && r.data.passed === passes, JSON.stringify({ p: r.data.percent, passed: r.data.passed }));
+}
+
+section("limits: a test holds at most 500 questions");
+const CAPT = await mkTest({ title: "Capacity" });
+await importQs(CAPT, qOf(3));
+const cq = (await call("GET", `/admin/tests/${CAPT}`, { token: T })).data.questions;
+await call("DELETE", `/admin/questions/${cq[0].id}`, { token: T });
+await call("DELETE", `/admin/questions/${cq[1].id}`, { token: T }); // 1 question left, but the highest position is still 3
+is(await importQs(CAPT, qOf(499), "append"), 200, "499 more fit next to the 1 that is left, although positions have gaps");
+ok("the test now holds exactly 500", (await db.collection("questions").countDocuments({ testId: CAPT })) === 500);
+is(await importQs(CAPT, qOf(1), "append"), 409, "a 501st question by import is refused");
+is(await call("POST", `/admin/tests/${CAPT}/questions`, { token: T, body: qOf(1)[0] }), 409, "a 501st question by the form is refused");
+is(await importQs(CAPT, qOf(501), "replace"), 400, "importing 501 at once is refused");
+ok("a refused import changed nothing", (await db.collection("questions").countDocuments({ testId: CAPT })) === 500);
+
+section("duplicating a test with a long title");
+for (const len of [100, 113, 114, 120]) {
+  const src = await mkTest({ title: "t".repeat(len) });
+  const dup = (await call("POST", `/admin/tests/${src}/duplicate`, { token: T })).data.id;
+  const copy = (await call("GET", `/admin/tests/${dup}`, { token: T })).data.test.title;
+  ok(`a ${len}-character title: the copy ends with " (copy)", differs from the original and stays within 120`, copy.endsWith(" (copy)") && copy !== "t".repeat(len) && copy.length <= 120, `${copy.length}: ${copy.slice(-12)}`);
+}
+
+section("every route is protected, and the old single-test routes are gone");
+const adminRoutes = [
+  ["GET", "/admin/tests"], ["POST", "/admin/tests"], ["GET", `/admin/tests/${TID}`], ["PUT", `/admin/tests/${TID}`], ["DELETE", `/admin/tests/${Z0}`],
+  ["POST", `/admin/tests/${TID}/duplicate`], ["POST", `/admin/tests/${TID}/questions`], ["POST", `/admin/tests/${TID}/questions/swap`], ["POST", `/admin/tests/${TID}/questions/import`],
+  ["PUT", `/admin/questions/${Z0}`], ["DELETE", `/admin/questions/${Z0}`], ["GET", "/admin/attempts"], ["DELETE", `/admin/attempts/${Z0}`],
+];
+const withBody = (m, token) => ({ token, ...(m === "GET" || m === "DELETE" ? {} : { body: {} }) });
+for (const [m, path] of adminRoutes) {
+  const noToken = await call(m, path, withBody(m));
+  const asAgent = await call(m, path, withBody(m, A));
+  ok(`${m} ${path.replace(TID, ":id").replace(Z0, ":id")}: refused without a token and for an agent`, noToken.status === 401 && asAgent.status === 401, `${noToken.status}/${asAgent.status}`);
+}
+const agentRoutes = [
+  ["GET", "/tests"], ["GET", `/test/${TID}`], ["GET", `/attempt/open?testId=${TID}`], ["POST", "/attempt/start"],
+  ["PUT", `/attempt/${Z0}/answer`], ["POST", `/attempt/${Z0}/violation`], ["POST", `/attempt/${Z0}/submit`],
+];
+for (const [m, path] of agentRoutes) {
+  const noToken = await call(m, path, withBody(m));
+  const asAdmin = await call(m, path, withBody(m, T));
+  ok(`${m} ${path.replace(TID, ":id").replace(Z0, ":id")}: refused without a token and for an admin token`, noToken.status === 401 && asAdmin.status === 401, `${noToken.status}/${asAdmin.status}`);
+}
+is(await call("GET", "/test", { token: A }), 404, "the old GET /test is gone");
+is(await call("GET", "/admin/questions", { token: T }), 404, "the old GET /admin/questions is gone");
+is(await call("POST", "/admin/questions", { token: T, body: qOf(1)[0] }), 404, "the old POST /admin/questions is gone");
+is(await call("GET", "/admin/config", { token: T }), 404, "the old GET /admin/config is gone");
+is(await call("PUT", "/admin/config", { token: T, body: { title: "x" } }), 404, "the old PUT /admin/config is gone");
+is(await call("GET", "/admin/attempts?testId=not-an-id", { token: T }), 400, "a malformed attempts filter -> 400");
+is(await call("GET", `/admin/attempts?testId=${Z0}`, { token: T }), 200, "a filter on an unknown test just returns nothing");
+
 section("indexes: one running attempt per browser PER TEST");
 await db.collection("attempts").deleteMany({});
 await db.collection("attempts").createIndex({ sid: 1 }, { unique: true, partialFilterExpression: { status: "in-progress" } }); // the OLD rule

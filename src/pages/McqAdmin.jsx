@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
+import { TriangleAlert } from "lucide-react";
 import { friendlyError } from "../utils/mcqApi";
 import {
   ADMIN_EXPIRED_EVENT,
@@ -12,6 +13,7 @@ import {
 import AccessPanel from "../components/mcq/AccessPanel";
 import AttemptsPanel from "../components/mcq/AttemptsPanel";
 import TestsPanel from "../components/mcq/TestsPanel";
+import { useLiveAttempts } from "../components/mcq/useLiveAttempts";
 
 const TABS = ["Tests", "Attempts", "Access"];
 
@@ -57,6 +59,17 @@ const McqAdmin = () => {
   useEffect(() => {
     if (ready) loadData();
   }, [ready, loadData]);
+
+  // Attempts and warnings are watched on EVERY tab, so a tab switch by an agent shows up
+  // as a red alert wherever the admin is looking.
+  const live = useLiveAttempts(ready, tests);
+
+  // Counts and titles are re-read whenever the admin changes tab, so they are never stale.
+  const selectTab = (name) => {
+    setTab(name);
+    if (name !== "Access") loadData();
+    if (name === "Attempts") live.refresh();
+  };
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -137,11 +150,29 @@ const McqAdmin = () => {
         </button>
       </div>
 
+      {live.alerts.map((alert) => (
+        <div
+          key={alert.key}
+          className="bg-red-600 text-white rounded p-3 mb-2 flex justify-between items-center gap-3"
+          role="alert"
+        >
+          <p className="flex gap-2 items-center">
+            <TriangleAlert className="w-5 shrink-0" />
+            <span>
+              <strong>{alert.who}</strong>: {alert.label}
+            </span>
+          </p>
+          <button onClick={() => live.dismissAlert(alert.key)} className="underline shrink-0">
+            Dismiss
+          </button>
+        </div>
+      ))}
+
       <div className="flex gap-2 mb-4">
         {TABS.map((name) => (
           <button
             key={name}
-            onClick={() => setTab(name)}
+            onClick={() => selectTab(name)}
             className={`px-3 py-1 text-sm rounded-md font-medium transition ${
               tab === name ? "bg-indigo-500 text-white" : "bg-gray-200 text-gray-800 hover:bg-indigo-100"
             }`}
@@ -151,11 +182,25 @@ const McqAdmin = () => {
         ))}
       </div>
 
-      {loadError && <p className="bg-red-600 text-white rounded p-3 mb-3 text-sm">{loadError}</p>}
+      {loadError && (
+        <div className="bg-red-600 text-white rounded p-3 mb-3 text-sm flex justify-between items-center gap-3">
+          <span>{loadError}</span>
+          <button onClick={loadData} className="underline shrink-0">Try again</button>
+        </div>
+      )}
 
       {tests === null && !loadError && <p>Loading…</p>}
       {tests !== null && tab === "Tests" && <TestsPanel tests={tests} onChanged={loadData} />}
-      {tests !== null && tab === "Attempts" && <AttemptsPanel tests={tests} />}
+      {tests !== null && tab === "Attempts" && (
+        <AttemptsPanel
+          tests={tests}
+          attempts={live.attempts}
+          answerKeys={live.answerKeys}
+          loaded={live.loaded}
+          error={live.error}
+          onDeleted={live.removeAttempt}
+        />
+      )}
       {tab === "Access" && <AccessPanel />}
     </section>
   );

@@ -6,6 +6,7 @@ import SOP from './pages/SOP';
 import DialogBox from './components/DialogBox';
 import { MessageSquareText } from 'lucide-react';
 import Navbar from './components/Navbar';
+import ChunkErrorBoundary from './components/ChunkErrorBoundary';
 import Calculator from './pages/Calculator';
 
 // Lazy so the test pages are only downloaded when someone opens them.
@@ -45,24 +46,30 @@ function App() {
 
         {/* The agents' list of tests */}
         <Route path="/test">
-          <Suspense fallback={<div className="text-center py-10">Loading…</div>}>
-            <McqList />
-          </Suspense>
+          <ChunkErrorBoundary>
+            <Suspense fallback={<div className="text-center py-10">Loading…</div>}>
+              <McqList />
+            </Suspense>
+          </ChunkErrorBoundary>
         </Route>
 
         {/* Must come BEFORE /test/:id, or "admin" would be read as a test id */}
         <Route path="/test/admin">
-          <Suspense fallback={<div className="text-center py-10">Loading…</div>}>
-            <McqAdmin />
-          </Suspense>
+          <ChunkErrorBoundary>
+            <Suspense fallback={<div className="text-center py-10">Loading…</div>}>
+              <McqAdmin />
+            </Suspense>
+          </ChunkErrorBoundary>
         </Route>
 
         {/* One test; key makes switching between tests start from a clean page */}
         <Route path="/test/:id">
           {(params) => (
-            <Suspense fallback={<div className="text-center py-10">Loading…</div>}>
-              <McqTest key={params.id} testId={params.id} />
-            </Suspense>
+            <ChunkErrorBoundary>
+              <Suspense fallback={<div className="text-center py-10">Loading…</div>}>
+                <McqTest key={params.id} testId={params.id} />
+              </Suspense>
+            </ChunkErrorBoundary>
           )}
         </Route>
 
